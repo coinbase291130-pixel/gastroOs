@@ -268,7 +268,7 @@ const App: React.FC = () => {
   };
 
   const handleAddRegister = (newReg: CashRegister) => {
-      setRegisters(prev => [...prev, newReg]);
+      setRegisters(prev => [...prev, { ...newReg, isActive: true }]);
       notify('Caja creada exitosamente.', 'success');
   };
   
@@ -277,17 +277,10 @@ const App: React.FC = () => {
       notify('Caja actualizada exitosamente.', 'success');
   };
 
-  const handleDeleteRegister = async (registerId: string) => {
-      const confirmed = await confirmAction({
-          title: 'Eliminar Caja',
-          message: '¿Estás seguro de eliminar esta caja? Se perderá el historial de sesiones si no se respalda.',
-          type: 'danger',
-          confirmText: 'Eliminar'
-      });
-      if (confirmed) {
-        setRegisters(prev => prev.filter(r => r.id !== registerId));
-        notify('Caja eliminada.', 'info');
-      }
+  const handleDeleteRegister = (registerId: string) => {
+      // Soft Delete (Logical)
+      setRegisters(prev => prev.map(r => r.id === registerId ? { ...r, isActive: false } : r));
+      notify('Caja movida a la papelera.', 'info');
   };
 
   const handleSelectTable = (table: Table | undefined) => {

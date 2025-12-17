@@ -29,8 +29,8 @@ export const MOCK_BRANCHES: Branch[] = [
 ];
 
 export const MOCK_REGISTERS: CashRegister[] = [
-  { id: 'reg1', branchId: 'b1', name: 'Caja Principal', isOpen: false },
-  { id: 'reg2', branchId: 'b1', name: 'Caja Terraza', isOpen: false },
+  { id: 'reg1', branchId: 'b1', name: 'Caja Principal', isOpen: false, isActive: true },
+  { id: 'reg2', branchId: 'b1', name: 'Caja Terraza', isOpen: false, isActive: true },
 ];
 
 export const MOCK_TABLES: Table[] = [

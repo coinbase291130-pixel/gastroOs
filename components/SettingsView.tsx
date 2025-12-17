@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Save, Percent, CheckCircle, Users, Monitor, Store, Gift, Plus, Trash2, Edit2, Shield, User, X, Briefcase, Upload, Image as ImageIcon, MapPin, Phone, Lock, Unlock, Ban, Wallet, Archive, RotateCcw } from 'lucide-react';
+import { Save, Percent, CheckCircle, Users, Monitor, Store, Gift, Plus, Trash2, Edit2, Shield, User, X, Briefcase, Upload, Image as ImageIcon, MapPin, Phone, Lock, Unlock, Ban, Wallet, Archive, RotateCcw, AlertTriangle, Key } from 'lucide-react';
 import { LoyaltyConfig, User as UserType, Role, CashRegister, Branch } from '../types';
 import { useNotification } from './NotificationContext';
 
@@ -40,6 +40,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   // --- BRANCH STATE ---
   const [showBranchTrash, setShowBranchTrash] = useState(false);
 
+  // --- REGISTER STATE ---
+  const [showRegisterTrash, setShowRegisterTrash] = useState(false);
+
   // --- TAX STATE ---
   const [tempTaxRate, setTempTaxRate] = useState(taxRate * 100);
 
@@ -75,7 +78,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   const handleSaveTax = () => {
       onUpdateTax(tempTaxRate / 100);
-      notify('Tasa de impuestos actualizada correctamente.');
+      notify('Tasa de impuestos actualizada correctamente.', 'success');
   };
 
   const handleSaveLoyalty = () => {
@@ -85,7 +88,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       minRedemptionPoints: Number(minRedemption),
       birthdayDiscountPercentage: Number(birthdayDiscount)
     });
-    notify('Configuración de fidelización guardada.');
+    notify('Configuración de fidelización guardada.', 'success');
   };
 
   // User Handlers
@@ -120,6 +123,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 pin: newUserPin,
                 branchId: newUserBranch
             });
+            notify('Usuario actualizado.', 'success');
         }
     } else {
         const newUser: UserType = {
@@ -132,6 +136,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             isActive: true
         };
         onAddUser(newUser);
+        notify('Usuario creado.', 'success');
     }
     setIsUserModalOpen(false);
     setNewUserName(''); setNewUserEmail(''); setNewUserPin(''); setEditingUser(null);
@@ -152,6 +157,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
           if (shouldProceed) {
               onUpdateUser({ ...user, isActive: !user.isActive });
+              notify(user.isActive ? 'Usuario desactivado.' : 'Usuario restaurado.', 'info');
           }
       }
   };
@@ -172,18 +178,45 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       e.preventDefault();
       if (editingRegister) {
           onUpdateRegister({ ...editingRegister, name: registerNameForm });
+          notify('Caja actualizada.', 'success');
       } else {
            const newReg: CashRegister = {
               id: `reg-${Date.now()}`,
               branchId: currentBranchId,
               name: registerNameForm,
-              isOpen: false
+              isOpen: false,
+              isActive: true
           };
           onAddRegister(newReg);
+          notify('Caja creada.', 'success');
       }
       setIsRegisterModalOpen(false);
   };
 
+  const toggleRegisterStatus = async (register: CashRegister) => {
+      if (register.isOpen && register.isActive) {
+          notify("No puedes desactivar una caja que está abierta. Cierra turno primero.", "error");
+          return;
+      }
+
+      if (register.isActive) {
+           const confirmed = await confirm({
+              title: 'Desactivar Caja',
+              message: `¿Estás seguro de desactivar la caja "${register.name}"? Se moverá a la papelera.`,
+              type: 'warning',
+              confirmText: 'Desactivar'
+          });
+          if (confirmed) {
+              onDeleteRegister(register.id); // In App.tsx this now handles soft delete
+          }
+      } else {
+           // Restore
+           onUpdateRegister({ ...register, isActive: true });
+           notify('Caja restaurada.', 'success');
+      }
+  };
+
+  // Branch Handlers
   const openBranchModal = (branch?: Branch) => {
       if (branch) {
           setEditingBranch(branch);
@@ -219,6 +252,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               phone: newBranchPhone,
               logoUrl: newBranchLogo
           });
+          notify('Sucursal actualizada.', 'success');
       } else {
           const newBranch: Branch = {
               id: `b-${Date.now()}`,
@@ -230,6 +264,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               logoUrl: newBranchLogo || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=80'
           };
           onAddBranch(newBranch);
+          notify('Sucursal creada.', 'success');
       }
       setIsBranchModalOpen(false);
   };
@@ -268,9 +303,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   return (
     <div className="p-4 md:p-8 h-full bg-slate-50 overflow-y-auto pb-24 md:pb-8 relative">
-       {/* ... (Render code mostly the same, ensuring handlers are updated) ... */}
-       {/* This component just needed the logic updates in toggle handlers which is done above. The JSX remains identical. */}
-       {/* Keeping the JSX concise here for brevity but assuming full original JSX is retained */}
       <div className="flex justify-between items-center mb-6">
           <div>
             <h2 className="text-3xl font-bold text-slate-800">Ajustes del Sistema</h2>
@@ -426,8 +458,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
       )}
 
-      {/* TAX, REGISTERS, TEAM, LOYALTY TABS (Content identical to before but wrapped in same layout) */}
-      {/* For brevity, assume standard rendering for other tabs... */}
+      {/* TAX TAB */}
       {activeTab === 'tax' && (
            <div className="bg-white p-8 md:p-10 rounded-2xl shadow-md border border-slate-100 max-w-5xl animate-in fade-in slide-in-from-bottom-4 relative overflow-hidden">
                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start relative z-10">
@@ -453,67 +484,329 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
            </div>
       )}
       
-      {/* ... (Team, Registers, Loyalty rendered similarly) ... */}
-      {/* Just rendering one more example of confirm usage in Team Tab */}
-      
+      {/* TEAM TAB */}
       {activeTab === 'team' && (
         <div className="animate-in fade-in slide-in-from-bottom-4">
-             {/* ... Header and Trash button ... */}
+             {/* Header and Trash button */}
              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-bold text-slate-800">Lista de Empleados</h3>
-                <button onClick={() => setShowUserTrash(!showUserTrash)} className="px-4 py-2 bg-white border rounded-lg text-sm font-bold">
-                    {showUserTrash ? 'Ver Activos' : 'Papelera'}
-                </button>
+                <div>
+                    <h3 className="text-lg font-bold text-slate-800">Lista de Empleados</h3>
+                    <p className="text-sm text-slate-500">Gestiona usuarios y permisos de acceso</p>
+                </div>
+                <div className="flex gap-2">
+                    <button onClick={() => setShowUserTrash(!showUserTrash)} className={`px-4 py-2 rounded-lg font-bold flex items-center border transition-all ${showUserTrash ? 'bg-red-50 text-red-600 border-red-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>
+                        {showUserTrash ? 'Ver Activos' : 'Papelera'}
+                    </button>
+                    {!showUserTrash && (
+                        <button onClick={() => openUserModal()} className="bg-brand-600 text-white px-4 py-2 rounded-lg font-bold flex items-center shadow hover:bg-brand-700 transition-all active:scale-95">
+                            <Plus size={18} className="mr-2"/> Nuevo Empleado
+                        </button>
+                    )}
+                </div>
              </div>
              
+             {showUserTrash && (
+                  <div className="bg-red-50 p-3 text-red-700 text-sm font-medium flex items-center justify-center border-b border-red-100 rounded-lg mb-6">
+                      <Archive size={16} className="mr-2" /> Empleados desactivados (No pueden iniciar sesión).
+                  </div>
+             )}
+
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {users.filter(u => showUserTrash ? !u.isActive : u.isActive).map(user => (
-                    <div key={user.id} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-                        {/* ... User Card Content ... */}
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="font-bold">{user.name}</div>
-                            <button 
-                                onClick={() => toggleUserStatus(user)}
-                                className={`p-2 rounded-lg ${user.isActive ? 'text-slate-400 hover:text-red-500' : 'text-emerald-500'}`}
-                            >
-                                {user.isActive ? <Trash2 size={18} /> : <RotateCcw size={18} />}
-                            </button>
+                    <div key={user.id} className={`bg-white p-5 rounded-2xl shadow-sm border transition-all relative overflow-hidden group ${user.isActive ? 'border-slate-100 hover:border-brand-200' : 'border-red-100 opacity-75'}`}>
+                        <div className="flex justify-between items-start mb-4 relative z-10">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center font-bold text-slate-600">
+                                    {user.name.charAt(0)}
+                                </div>
+                                <div>
+                                    <div className="font-bold text-slate-800">{user.name}</div>
+                                    <div className="text-xs text-slate-500">{user.role.replace('_', ' ')}</div>
+                                </div>
+                            </div>
+                            <div className="flex gap-1">
+                                {!showUserTrash && (
+                                    <button onClick={() => openUserModal(user)} className="p-2 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors">
+                                        <Edit2 size={16}/>
+                                    </button>
+                                )}
+                                <button 
+                                    onClick={() => toggleUserStatus(user)}
+                                    className={`p-2 rounded-lg transition-colors ${user.isActive ? 'text-slate-400 hover:text-red-500 hover:bg-red-50' : 'text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50'}`}
+                                >
+                                    {user.isActive ? <Trash2 size={16} /> : <RotateCcw size={16} />}
+                                </button>
+                            </div>
                         </div>
-                        {/* ... */}
+                        <div className="text-sm text-slate-600 space-y-1 relative z-10">
+                            <p className="flex items-center"><Key size={14} className="mr-2 text-slate-400"/> PIN: ****</p>
+                            <p className="flex items-center"><Store size={14} className="mr-2 text-slate-400"/> {branches.find(b => b.id === user.branchId)?.name || 'Todas'}</p>
+                        </div>
+                        
+                        {/* Decorative blob */}
+                        <div className={`absolute -right-6 -bottom-6 w-24 h-24 rounded-full opacity-10 pointer-events-none ${user.isActive ? 'bg-brand-500' : 'bg-red-500'}`}></div>
                     </div>
                 ))}
             </div>
         </div>
       )}
 
-      {/* Registers Tab */}
+      {/* REGISTERS TAB (Updated to match Team Layout) */}
       {activeTab === 'registers' && (
-          // ... Standard register list
           <div className="animate-in fade-in slide-in-from-bottom-4">
-               {/* ... */}
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {registers.filter(r => r.branchId === currentBranchId).map(reg => (
-                      <div key={reg.id} className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm">
-                          <div className="flex justify-between">
-                              <span className="font-bold">{reg.name}</span>
-                              <button onClick={() => onDeleteRegister(reg.id)} className="text-slate-400 hover:text-red-500"><Trash2 size={18}/></button>
+               <div className="flex justify-between items-center mb-6">
+                    <div>
+                        <h3 className="text-lg font-bold text-slate-800">
+                            {showRegisterTrash ? 'Papelera de Cajas' : 'Cajas Registradoras'}
+                        </h3>
+                        <p className="text-sm text-slate-500">
+                            {showRegisterTrash ? 'Restaura cajas eliminadas' : 'Puntos de venta habilitados en la sucursal actual'}
+                        </p>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                         <button 
+                            onClick={() => setShowRegisterTrash(!showRegisterTrash)}
+                            className={`px-4 py-2 rounded-lg font-bold flex items-center border transition-all ${
+                                showRegisterTrash 
+                                ? 'bg-red-50 text-red-600 border-red-200' 
+                                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                            }`}
+                        >
+                            {showRegisterTrash ? <Wallet size={18} className="mr-2"/> : <Archive size={18} className="mr-2"/>}
+                            {showRegisterTrash ? 'Ver Activas' : 'Papelera'}
+                        </button>
+                        {!showRegisterTrash && (
+                            <button onClick={() => openRegisterModal()} className="bg-brand-600 text-white px-4 py-2 rounded-lg font-bold flex items-center shadow hover:bg-brand-700 transition-all active:scale-95">
+                                <Plus size={18} className="mr-2"/> Nueva Caja
+                            </button>
+                        )}
+                    </div>
+               </div>
+                
+               {showRegisterTrash && (
+                  <div className="bg-red-50 p-3 text-red-700 text-sm font-medium flex items-center justify-center border-b border-red-100 rounded-lg mb-6">
+                      <Archive size={16} className="mr-2" /> Cajas desactivadas (No aparecen en el Tablero).
+                  </div>
+               )}
+
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {registers.filter(r => r.branchId === currentBranchId && (showRegisterTrash ? !r.isActive : r.isActive)).map(reg => (
+                      <div key={reg.id} className={`bg-white p-5 rounded-2xl shadow-sm border transition-all relative overflow-hidden group ${reg.isActive ? 'border-slate-100 hover:border-brand-200' : 'border-red-100 opacity-75'}`}>
+                          <div className="flex justify-between items-start mb-4 relative z-10">
+                              <div className="flex items-center gap-3">
+                                  <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${reg.isOpen ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-500'}`}>
+                                      <Monitor size={20}/>
+                                  </div>
+                                  <div>
+                                      <div className="font-bold text-slate-800">{reg.name}</div>
+                                      <div className={`text-xs font-bold px-2 py-0.5 rounded-full inline-block mt-1 ${reg.isOpen ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
+                                          {reg.isOpen ? 'ABIERTA' : 'CERRADA'}
+                                      </div>
+                                  </div>
+                              </div>
+                              <div className="flex gap-1">
+                                  {!showRegisterTrash && (
+                                     <button onClick={() => openRegisterModal(reg)} className="p-2 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"><Edit2 size={16}/></button>
+                                  )}
+                                  <button 
+                                    onClick={() => toggleRegisterStatus(reg)} 
+                                    className={`p-2 rounded-lg transition-colors ${reg.isActive ? 'text-slate-400 hover:text-red-600 hover:bg-red-50' : 'text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50'}`}
+                                  >
+                                      {reg.isActive ? <Trash2 size={16}/> : <RotateCcw size={16}/>}
+                                  </button>
+                              </div>
                           </div>
+
+                          <div className="text-sm text-slate-600 space-y-1 relative z-10 mt-2">
+                              <p className="flex items-center">
+                                <User size={14} className="mr-2 text-slate-400"/>
+                                <span className={reg.isOpen ? "font-medium text-slate-800" : "text-slate-400 italic"}>
+                                    {reg.isOpen ? (reg.currentUser || 'Usuario Desconocido') : 'Sin asignar'}
+                                </span>
+                              </p>
+                              <p className="flex items-center text-xs text-slate-400">
+                                <Wallet size={14} className="mr-2 text-slate-400"/>
+                                ID: {reg.id.slice(0, 8)}...
+                              </p>
+                          </div>
+
+                          {/* Decorative blob */}
+                          <div className={`absolute -right-6 -bottom-6 w-24 h-24 rounded-full opacity-10 pointer-events-none ${reg.isActive ? (reg.isOpen ? 'bg-green-500' : 'bg-slate-500') : 'bg-red-500'}`}></div>
                       </div>
                   ))}
+                  {registers.filter(r => r.branchId === currentBranchId && (showRegisterTrash ? !r.isActive : r.isActive)).length === 0 && (
+                      <div className="col-span-full py-12 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
+                          <Wallet size={32} className="mx-auto mb-2 opacity-50"/>
+                          <p>{showRegisterTrash ? 'La papelera está vacía.' : 'No hay cajas activas en esta sucursal.'}</p>
+                      </div>
+                  )}
                </div>
           </div>
       )}
 
-      {/* Loyalty Tab */}
+      {/* LOYALTY TAB */}
       {activeTab === 'loyalty' && (
-        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
-             {/* ... Loyalty form ... */}
-             <button onClick={handleSaveLoyalty} className="w-full bg-brand-600 text-white px-6 py-3 rounded-xl font-bold mt-4">Guardar</button>
+        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 animate-in fade-in slide-in-from-bottom-4">
+             <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center">
+                 <Gift className="text-brand-600 mr-2"/> Configuración de Fidelización
+             </h3>
+             
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                 <div className="space-y-4">
+                     <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
+                         <div>
+                             <span className="font-bold text-slate-800 block">Habilitar Programa</span>
+                             <span className="text-xs text-slate-500">Permitir acumulación y canje de puntos</span>
+                         </div>
+                         <label className="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" className="sr-only peer" checked={loyaltyEnabled} onChange={e => setLoyaltyEnabled(e.target.checked)} />
+                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
+                        </label>
+                     </div>
+
+                     <div>
+                         <label className="block text-sm font-bold text-slate-700 mb-2">Puntos por unidad de moneda</label>
+                         <div className="flex items-center">
+                             <span className="bg-slate-100 border border-r-0 border-slate-300 rounded-l-lg p-3 text-slate-500 font-bold">1 $ =</span>
+                             <input type="number" className="w-full border border-slate-300 rounded-r-lg p-3 outline-none focus:ring-2 focus:ring-brand-500" 
+                                value={pointsPerCurrency} onChange={e => setPointsPerCurrency(Number(e.target.value))} />
+                             <span className="ml-2 font-bold text-slate-600">Puntos</span>
+                         </div>
+                         <p className="text-xs text-slate-400 mt-1">Ej: Si el cliente gasta $10 y el valor es 1, gana 10 puntos.</p>
+                     </div>
+                 </div>
+
+                 <div className="space-y-4">
+                     <div>
+                         <label className="block text-sm font-bold text-slate-700 mb-2">Mínimo para canje</label>
+                         <input type="number" className="w-full border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-brand-500" 
+                            value={minRedemption} onChange={e => setMinRedemption(Number(e.target.value))} />
+                     </div>
+                     
+                     <div>
+                         <label className="block text-sm font-bold text-slate-700 mb-2">Descuento de Cumpleaños (%)</label>
+                         <div className="relative">
+                             <input type="number" max="100" className="w-full border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-brand-500" 
+                                value={birthdayDiscount} onChange={e => setBirthdayDiscount(Number(e.target.value))} />
+                             <Percent className="absolute right-3 top-3.5 text-slate-400" size={18}/>
+                         </div>
+                     </div>
+                 </div>
+             </div>
+
+             <div className="mt-8 pt-6 border-t border-slate-100 flex justify-end">
+                <button onClick={handleSaveLoyalty} className="bg-brand-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-brand-700 transition-all active:scale-95 flex items-center">
+                    <Save size={18} className="mr-2"/> Guardar Cambios
+                </button>
+             </div>
         </div>
       )}
 
-      {/* Modals for Adding Users/Branches/Registers are rendered here */}
-      {/* ... keeping modals from original code ... */}
+      {/* --- MODALS --- */}
+
+      {/* User Modal */}
+      {isUserModalOpen && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6 animate-in zoom-in duration-200">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-bold text-slate-800">{editingUser ? 'Editar Empleado' : 'Nuevo Empleado'}</h3>
+                    <button onClick={() => setIsUserModalOpen(false)}><X className="text-slate-400 hover:text-slate-600" /></button>
+                </div>
+                <form onSubmit={handleSaveUser} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-1">Nombre</label>
+                        <input required type="text" className="w-full border rounded-lg p-3" value={newUserName} onChange={e => setNewUserName(e.target.value)} />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-1">Email</label>
+                        <input required type="email" className="w-full border rounded-lg p-3" value={newUserEmail} onChange={e => setNewUserEmail(e.target.value)} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-1">PIN Acceso</label>
+                            <input required type="text" maxLength={4} className="w-full border rounded-lg p-3 font-mono text-center tracking-widest" value={newUserPin} onChange={e => setNewUserPin(e.target.value)} placeholder="0000" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-1">Rol</label>
+                            <select className="w-full border rounded-lg p-3 bg-white" value={newUserRole} onChange={e => setNewUserRole(e.target.value as Role)}>
+                                <option value={Role.CASHIER}>Cajero</option>
+                                <option value={Role.WAITER}>Mesero</option>
+                                <option value={Role.CHEF}>Chef</option>
+                                <option value={Role.BRANCH_ADMIN}>Gerente</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-1">Sucursal Asignada</label>
+                        <select className="w-full border rounded-lg p-3 bg-white" value={newUserBranch} onChange={e => setNewUserBranch(e.target.value)}>
+                            {branches.map(b => (
+                                <option key={b.id} value={b.id}>{b.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <button type="submit" className="w-full bg-brand-600 text-white font-bold py-3 rounded-lg mt-4 hover:bg-brand-700">Guardar</button>
+                </form>
+            </div>
+        </div>
+      )}
+
+      {/* Register Modal */}
+      {isRegisterModalOpen && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+              <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 animate-in zoom-in duration-200">
+                  <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-xl font-bold text-slate-800">{editingRegister ? 'Editar Caja' : 'Nueva Caja'}</h3>
+                      <button onClick={() => setIsRegisterModalOpen(false)}><X className="text-slate-400 hover:text-slate-600" /></button>
+                  </div>
+                  <form onSubmit={handleSaveRegister} className="space-y-4">
+                      <div>
+                          <label className="block text-sm font-bold text-slate-700 mb-1">Nombre Identificador</label>
+                          <input required type="text" className="w-full border rounded-lg p-3" value={registerNameForm} onChange={e => setRegisterNameForm(e.target.value)} placeholder="Ej. Caja Principal" />
+                      </div>
+                      <button type="submit" className="w-full bg-brand-600 text-white font-bold py-3 rounded-lg mt-4 hover:bg-brand-700">Guardar</button>
+                  </form>
+              </div>
+          </div>
+      )}
+
+      {/* Branch Modal */}
+      {isBranchModalOpen && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+              <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl p-6 animate-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
+                  <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-xl font-bold text-slate-800">{editingBranch ? 'Editar Sucursal' : 'Nueva Sucursal'}</h3>
+                      <button onClick={() => setIsBranchModalOpen(false)}><X className="text-slate-400 hover:text-slate-600" /></button>
+                  </div>
+                  <form onSubmit={handleSaveBranch} className="space-y-4">
+                      <div className="flex items-center gap-4 mb-2">
+                          <div className="w-20 h-20 bg-slate-100 rounded-xl border flex items-center justify-center overflow-hidden relative group shrink-0">
+                                {newBranchLogo ? <img src={newBranchLogo} alt="Logo" className="w-full h-full object-cover" /> : <ImageIcon className="text-slate-300" size={24} />}
+                                <input type="file" accept="image/*" onChange={handleBranchLogoUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
+                          </div>
+                          <div>
+                              <label className="block text-sm font-bold text-slate-700">Logo de Sucursal</label>
+                              <p className="text-xs text-slate-400">Click en la imagen para subir.</p>
+                          </div>
+                      </div>
+                      <div>
+                          <label className="block text-sm font-bold text-slate-700 mb-1">Nombre Sucursal</label>
+                          <input required type="text" className="w-full border rounded-lg p-3" value={newBranchName} onChange={e => setNewBranchName(e.target.value)} />
+                      </div>
+                      <div>
+                          <label className="block text-sm font-bold text-slate-700 mb-1">Dirección Física</label>
+                          <input required type="text" className="w-full border rounded-lg p-3" value={newBranchAddress} onChange={e => setNewBranchAddress(e.target.value)} />
+                      </div>
+                      <div>
+                          <label className="block text-sm font-bold text-slate-700 mb-1">Teléfono</label>
+                          <input type="tel" className="w-full border rounded-lg p-3" value={newBranchPhone} onChange={e => setNewBranchPhone(e.target.value)} />
+                      </div>
+                      <button type="submit" className="w-full bg-brand-600 text-white font-bold py-3 rounded-lg mt-4 hover:bg-brand-700">Guardar Sucursal</button>
+                  </form>
+              </div>
+          </div>
+      )}
+
     </div>
   );
 };

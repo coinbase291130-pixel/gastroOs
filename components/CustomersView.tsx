@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Customer } from '../types';
 import { Users, Search, Plus, Phone, MapPin, Mail, X, Save, Cake, Trash2, Edit2, RotateCcw, Archive } from 'lucide-react';
+import { useNotification } from './NotificationContext';
 
 interface CustomersViewProps {
   customers: Customer[];
@@ -9,6 +10,7 @@ interface CustomersViewProps {
 }
 
 export const CustomersView: React.FC<CustomersViewProps> = ({ customers, onAddCustomer, onUpdateCustomer }) => {
+  const { notify, confirm } = useNotification();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showTrash, setShowTrash] = useState(false);
@@ -61,6 +63,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ customers, onAddCu
                 ...original,
                 name, phone, email, address, birthDate
             });
+            notify('Cliente actualizado correctamente.', 'success');
         }
     } else {
         // Create Mode
@@ -75,6 +78,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ customers, onAddCu
             isActive: true
         };
         onAddCustomer(newCustomer);
+        notify('Cliente registrado con éxito.', 'success');
     }
     
     setIsModalOpen(false);
@@ -82,14 +86,23 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ customers, onAddCu
     setName(''); setPhone(''); setEmail(''); setAddress(''); setBirthDate('');
   };
 
-  const toggleStatus = (customer: Customer) => {
+  const toggleStatus = async (customer: Customer) => {
       if (onUpdateCustomer) {
           if (customer.isActive) {
-              if (confirm('¿Mover este cliente a la papelera?')) {
+              const confirmed = await confirm({
+                  title: 'Desactivar Cliente',
+                  message: `¿Estás seguro de mover a "${customer.name}" a la papelera? No podrá ser seleccionado en ventas.`,
+                  type: 'warning',
+                  confirmText: 'Mover a Papelera'
+              });
+
+              if (confirmed) {
                   onUpdateCustomer({ ...customer, isActive: false });
+                  notify('Cliente movido a papelera.', 'info');
               }
           } else {
               onUpdateCustomer({ ...customer, isActive: true });
+              notify('Cliente restaurado correctamente.', 'success');
           }
       }
   };

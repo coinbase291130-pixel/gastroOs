@@ -97,6 +97,7 @@ export interface CashRegister {
   isOpen: boolean;
   currentUserId?: string; // ID del usuario que la tiene abierta
   currentUser?: string; // Nombre
+  isActive: boolean; // Added for logical deletion
 }
 
 export interface RegisterSession {

@@ -74,20 +74,22 @@ export const QrMenuView: React.FC<QrMenuViewProps> = ({ products, currentBranch 
               {/* Printable QR Card */}
               <div id="printable-qr" className="bg-white rounded-[2rem] shadow-xl border border-slate-100 overflow-hidden relative print:shadow-none print:border-2 print:border-black print:w-[350px] print:mx-auto">
                   {/* Decorative Header */}
-                  <div className="bg-brand-600 h-32 relative overflow-hidden flex items-center justify-center">
+                  <div className="bg-brand-600 h-48 relative overflow-hidden flex flex-col items-center justify-start pt-10">
                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/food.png')] opacity-10"></div>
                        <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-white opacity-10 rounded-full blur-2xl"></div>
-                       <div className="text-center text-white relative z-10 p-4 pb-12">
-                           <div className="bg-white/20 backdrop-blur-md p-3 rounded-2xl inline-flex mb-2 shadow-lg">
+                       
+                       {/* Brand Info - Positioned higher to avoid overlap */}
+                       <div className="text-center text-white relative z-10 px-4">
+                           <div className="bg-white/20 backdrop-blur-md p-3 rounded-2xl inline-flex mb-3 shadow-lg">
                                <ChefHat size={32} className="text-white" />
                            </div>
-                           <h3 className="font-bold text-xl tracking-wide">{currentBranch?.name || 'GastroOS'}</h3>
+                           <h3 className="font-bold text-2xl tracking-wide drop-shadow-md">{currentBranch?.name || 'GastroOS'}</h3>
                        </div>
                   </div>
 
-                  <div className="px-8 pb-10 pt-32 relative text-center">
+                  <div className="px-8 pb-10 pt-24 relative text-center">
                       {/* Floating QR Container */}
-                      <div className="absolute -top-24 left-1/2 -translate-x-1/2 bg-white p-4 rounded-3xl shadow-2xl shadow-brand-900/10">
+                      <div className="absolute -top-20 left-1/2 -translate-x-1/2 bg-white p-3 rounded-3xl shadow-2xl shadow-brand-900/10 border-4 border-white">
                           <img 
                             src={qrCodeUrl} 
                             alt="Scan Menu" 
@@ -95,7 +97,7 @@ export const QrMenuView: React.FC<QrMenuViewProps> = ({ products, currentBranch 
                           />
                       </div>
 
-                      <h2 className="text-2xl font-bold text-slate-800 mb-2">Escanea el Menú</h2>
+                      <h2 className="text-2xl font-bold text-slate-800 mb-2 mt-4">Escanea el Menú</h2>
                       <p className="text-slate-400 text-sm mb-6 max-w-xs mx-auto">Abre la cámara de tu celular y apunta al código para ver nuestros platos.</p>
                       
                       <div className="flex justify-center items-center gap-2 text-xs font-mono text-slate-400 bg-slate-50 py-2 px-4 rounded-full border border-slate-100 w-full overflow-hidden print:hidden">
@@ -107,7 +109,7 @@ export const QrMenuView: React.FC<QrMenuViewProps> = ({ products, currentBranch 
                   </div>
 
                   {/* Footer Decoration */}
-                  <div className="h-2 bg-gradient-to-r from-brand-400 via-brand-500 to-brand-600"></div>
+                  <div className="h-3 bg-gradient-to-r from-brand-400 via-brand-500 to-brand-600"></div>
               </div>
 
               {/* Instructions / Steps (Hidden on Print) */}
