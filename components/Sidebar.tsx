@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, ShoppingBag, Package, Users, Settings, LogOut, Store, Grid3X3, MonitorPlay, BarChart3, Receipt, ChefHat, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Package, Users, Settings, LogOut, Store, Grid3X3, MonitorPlay, BarChart3, Receipt, ChefHat, ChevronDown, QrCode } from 'lucide-react';
 import { Branch } from '../types';
 
 interface SidebarProps {
@@ -26,6 +26,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'orders', label: 'Historial', icon: <ShoppingBag size={20} /> },
     { id: 'inventory', label: 'Productos', icon: <Package size={20} /> },
     { id: 'customers', label: 'Clientes', icon: <Users size={20} /> },
+    { id: 'qr-menu', label: 'Menú Digital', icon: <QrCode size={20} /> },
     { id: 'settings', label: 'Ajustes', icon: <Settings size={20} /> },
   ];
 

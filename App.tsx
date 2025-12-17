@@ -12,6 +12,7 @@ import { KDSView } from './components/KDSView';
 import { OrdersHistoryView } from './components/OrdersHistoryView';
 import { ReportsView } from './components/ReportsView';
 import { ExpensesView } from './components/ExpensesView';
+import { QrMenuView } from './components/QrMenuView'; // Nueva importación
 import { Delete, Eraser, User as UserIcon, ChefHat, ChevronDown } from 'lucide-react';
 import { useNotification } from './components/NotificationContext';
 
@@ -697,6 +698,8 @@ const App: React.FC = () => {
         return <OrdersHistoryView orders={branchOrders} />;
       case 'reports':
         return <ReportsView orders={branchOrders} expenses={branchExpenses} />;
+      case 'qr-menu':
+        return <QrMenuView products={products} currentBranch={branches.find(b => b.id === currentBranchId)} />;
       case 'settings':
         return (
             <SettingsView 
