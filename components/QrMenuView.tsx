@@ -8,8 +8,12 @@ interface QrMenuViewProps {
 }
 
 export const QrMenuView: React.FC<QrMenuViewProps> = ({ products, currentBranch }) => {
-  // En un entorno real, esta URL sería dinámica (ej: gastroos.com/menu/branch-id)
-  const menuUrl = `https://gastroos.app/menu/${currentBranch?.id || 'demo'}`;
+  // Generar URL basada en el dominio actual
+  // Si estamos en localhost:5173 -> http://localhost:5173/menu/b1
+  // Si estamos en vercel -> https://tu-app.vercel.app/menu/b1
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://gastroos.app';
+  const menuUrl = `${origin}/menu/${currentBranch?.id || 'demo'}`;
+  
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(menuUrl)}&bgcolor=ffffff&color=000000`;
 
   // Agrupar productos por categoría

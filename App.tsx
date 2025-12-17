@@ -12,7 +12,8 @@ import { KDSView } from './components/KDSView';
 import { OrdersHistoryView } from './components/OrdersHistoryView';
 import { ReportsView } from './components/ReportsView';
 import { ExpensesView } from './components/ExpensesView';
-import { QrMenuView } from './components/QrMenuView'; // Nueva importación
+import { QrMenuView } from './components/QrMenuView';
+import { PublicMenu } from './components/PublicMenu'; // Nueva importación
 import { Delete, Eraser, User as UserIcon, ChefHat, ChevronDown } from 'lucide-react';
 import { useNotification } from './components/NotificationContext';
 
@@ -114,16 +115,19 @@ const Login: React.FC<{ onLogin: (user: User) => void; users: User[] }> = ({ onL
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [currentView, setCurrentView] = useState('dashboard');
+  const [isPublicMenu, setIsPublicMenu] = useState(false); // Estado para detectar modo menú público
+  const [publicMenuBranchId, setPublicMenuBranchId] = useState<string>('');
+  
   const { notify } = useNotification();
   
   // App State (Simulating Backend)
   // Global Data
   const [products, setProducts] = useState(MOCK_PRODUCTS);
-  const [customers, setCustomers] = useState(MOCK_CUSTOMERS); // Clients are global usually
+  const [customers, setCustomers] = useState(MOCK_CUSTOMERS); 
   const [users, setUsers] = useState<User[]>(MOCK_USERS);
   const [branches, setBranches] = useState<Branch[]>(MOCK_BRANCHES);
   
-  // Branch Specific Data (We store all but filter in rendering)
+  // Branch Specific Data
   const [orders, setOrders] = useState<Order[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>(MOCK_INVENTORY);
   const [suppliers, setSuppliers] = useState<Supplier[]>(MOCK_SUPPLIERS);
@@ -141,13 +145,23 @@ const App: React.FC = () => {
   // Loyalty Settings State
   const [loyaltyConfig, setLoyaltyConfig] = useState<LoyaltyConfig>({
       enabled: true,
-      pointsPerCurrency: 1, // 1 point per $1
+      pointsPerCurrency: 1, 
       minRedemptionPoints: 50,
-      birthdayDiscountPercentage: 50 // Default 50%
+      birthdayDiscountPercentage: 50 
   });
 
-  // Table Management State
   const [selectedTable, setSelectedTable] = useState<Table | undefined>(undefined);
+
+  // --- ROUTING LOGIC FOR PUBLIC MENU ---
+  useEffect(() => {
+    const path = window.location.pathname;
+    // Check if path starts with /menu/
+    if (path.startsWith('/menu/')) {
+        const branchId = path.split('/')[2];
+        setIsPublicMenu(true);
+        setPublicMenuBranchId(branchId);
+    }
+  }, []);
 
   // Derived filtered data based on currentBranchId
   const branchOrders = orders.filter(o => o.branchId === currentBranchId);
@@ -155,9 +169,8 @@ const App: React.FC = () => {
   const branchTables = tables.filter(t => t.branchId === currentBranchId);
   const branchRegisters = registers.filter(r => r.branchId === currentBranchId);
   const branchExpenses = expenses.filter(e => e.branchId === currentBranchId);
-  // Suppliers are theoretically global or linked to items, but for simplicity here global or handled in inventory
   
-  // Audio for notifications
+  // ... (All handlers remain the same as previous)
   const playNotificationSound = () => {
      try {
         const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
@@ -184,15 +197,13 @@ const App: React.FC = () => {
     setUser(loggedInUser);
     notify(`Bienvenido, ${loggedInUser.name}`, 'success');
     
-    // If user is bound to a specific branch, force that branch
     if (loggedInUser.branchId) {
         setCurrentBranchId(loggedInUser.branchId);
     }
 
-    // Redirect based on role
     switch (loggedInUser.role) {
         case Role.CASHIER:
-            setCurrentView('tables'); // Cajas usually start at tables/POS
+            setCurrentView('tables'); 
             break;
         case Role.CHEF:
         case Role.GRILL_MASTER:
@@ -214,7 +225,6 @@ const App: React.FC = () => {
     notify('Sesión cerrada correctamente', 'info');
   };
 
-  // --- Branch Management Logic ---
   const handleAddBranch = (newBranch: Branch) => {
       setBranches(prev => [...prev, newBranch]);
       notify('Sucursal creada exitosamente.', 'success');
@@ -227,13 +237,11 @@ const App: React.FC = () => {
 
   const handleChangeBranch = (branchId: string) => {
       setCurrentBranchId(branchId);
-      // Reset selections
       setSelectedTable(undefined);
       const bName = branches.find(b => b.id === branchId)?.name;
       notify(`Cambiado a sucursal: ${bName}`, 'info');
   };
 
-  // --- Register Management Logic ---
   const handleOpenRegister = (registerId: string, amount: number) => {
       const newSession: RegisterSession = {
           id: `sess-${Date.now()}`,
@@ -245,7 +253,6 @@ const App: React.FC = () => {
           totalSales: 0
       };
       
-      // Update Register Status
       setRegisters(prev => prev.map(r => 
         r.id === registerId 
         ? { ...r, isOpen: true, currentUser: user!.name, currentUserId: user!.id } 
@@ -276,7 +283,6 @@ const App: React.FC = () => {
 
       notify(message, type);
 
-      // Update Register Status
       setRegisters(prev => prev.map(r => 
         r.id === activeSession.registerId 
         ? { ...r, isOpen: false, currentUser: undefined, currentUserId: undefined } 
@@ -303,8 +309,6 @@ const App: React.FC = () => {
       }
   };
 
-  // --- End Register Logic ---
-
   const handleSelectTable = (table: Table | undefined) => {
       if (!table) {
           setSelectedTable(undefined);
@@ -315,7 +319,6 @@ const App: React.FC = () => {
   };
 
   const handleAddTable = (newTable: Table) => {
-      // Ensure table is added to current branch
       setTables(prev => [...prev, { ...newTable, branchId: currentBranchId }]);
       notify('Mesa registrada exitosamente.', 'success');
   };
@@ -326,10 +329,8 @@ const App: React.FC = () => {
   };
 
   const handleChangeTable = (orderId: string, newTableId: string) => {
-      // 1. Update Order
       setOrders(prev => prev.map(o => o.id === orderId ? { ...o, tableId: newTableId } : o));
       
-      // 2. Update Tables Status
       const oldTableId = selectedTable?.id;
       
       setTables(prev => prev.map(t => {
@@ -338,7 +339,6 @@ const App: React.FC = () => {
           return t;
       }));
 
-      // 3. Update Selected Table Context
       const newTable = tables.find(t => t.id === newTableId);
       if (newTable) {
           setSelectedTable({ ...newTable, status: TableStatus.OCCUPIED, currentOrderId: orderId });
@@ -377,7 +377,6 @@ const App: React.FC = () => {
       notify('Usuario actualizado.', 'success');
   };
 
-  // --- Expenses Management ---
   const handleAddExpense = (newExpense: Expense) => {
       setExpenses(prev => [...prev, { ...newExpense, branchId: currentBranchId, isActive: true }]);
       notify('Gasto registrado.', 'success');
@@ -390,13 +389,11 @@ const App: React.FC = () => {
 
   const handleDeleteExpense = (id: string) => {
       if (confirm('¿Mover este gasto a la papelera?')) {
-          // Soft delete: toggle isActive to false
           setExpenses(prev => prev.map(e => e.id === id ? { ...e, isActive: false } : e));
           notify('Gasto movido a la papelera.', 'info');
       }
   };
 
-  // --- Inventory & Suppliers Logic ---
   const handleUpdateInventory = (item: InventoryItem) => {
       setInventory(prev => prev.map(i => i.id === item.id ? item : i));
       notify('Inventario actualizado.', 'success');
@@ -413,7 +410,7 @@ const App: React.FC = () => {
   };
 
   const deductInventory = (items: CartItem[]) => {
-      const newInventory = [...inventory]; // Works on global array but we only touch items with matching IDs
+      const newInventory = [...inventory]; 
       let lowStockAlerts: string[] = [];
 
       items.forEach(cartItem => {
@@ -455,7 +452,6 @@ const App: React.FC = () => {
       setInventory(newInventory);
   };
 
-  // SEND ORDER TO PREPARE
   const handleSendOrder = (items: CartItem[], type: OrderType, customer?: Customer) => {
     const total = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
     const totalCost = items.reduce((sum, item) => sum + (item.product.cost * item.quantity), 0);
@@ -467,7 +463,7 @@ const App: React.FC = () => {
 
     const newOrder: Order = {
         id: newOrderId,
-        branchId: currentBranchId, // Assign to current branch
+        branchId: currentBranchId, 
         tableId: selectedTable?.id,
         type,
         status: OrderStatus.PREPARING,
@@ -497,7 +493,6 @@ const App: React.FC = () => {
     notify('Pedido enviado a cocina.', 'success');
   };
 
-  // PROCESS PAYMENT
   const handleProcessPayment = (items: CartItem[], total: number, type: OrderType, method: PaymentMethod, customer?: Customer) => {
     
     if (items.length > 0) {
@@ -565,7 +560,6 @@ const App: React.FC = () => {
     notify(`Cobro exitoso: $${total.toFixed(2)} (${method})`, 'success');
   };
 
-  // CANCEL ORDER
   const handleCancelOrder = (order: Order) => {
       if (confirm('¿Estás seguro de anular este pedido? Se notificará a cocina/barra y se restaurará el inventario.')) {
           restoreInventory(order.items);
@@ -623,6 +617,20 @@ const App: React.FC = () => {
           return o;
       }));
   };
+
+  // --- RENDER PUBLIC MENU IF ACTIVE ---
+  if (isPublicMenu) {
+      const branch = branches.find(b => b.id === publicMenuBranchId);
+      // Fallback a una rama por defecto si el ID no existe o es invalido en la demo
+      const displayBranch = branch || branches[0];
+      
+      return <PublicMenu products={products} branch={displayBranch} />;
+  }
+
+  // --- AUTH GUARD ---
+  if (!user) {
+    return <Login onLogin={handleLogin} users={users} />;
+  }
 
   // View Routing Logic
   const renderView = () => {
@@ -726,10 +734,6 @@ const App: React.FC = () => {
         return <div>En Construcción</div>;
     }
   };
-
-  if (!user) {
-    return <Login onLogin={handleLogin} users={users} />;
-  }
 
   return (
     <div className="flex h-screen bg-slate-100 font-sans overflow-hidden">
