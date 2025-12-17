@@ -8,7 +8,8 @@ export enum Role {
   DRIVER = 'DRIVER',
   CHEF = 'CHEF', // Cocina
   GRILL_MASTER = 'GRILL_MASTER', // Asador
-  WAITER = 'WAITER' // Mesero
+  WAITER = 'WAITER', // Mesero
+  BARTENDER = 'BARTENDER' // Barra
 }
 
 export enum OrderType {

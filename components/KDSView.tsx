@@ -1,17 +1,38 @@
 
-import React, { useState } from 'react';
-import { Order, OrderStatus, ProductionArea, OrderType, ItemStatus } from '../types';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Order, OrderStatus, ProductionArea, OrderType, ItemStatus, Role } from '../types';
 import { Clock, CheckCircle, ChefHat, Beer, Flame, Filter, Monitor, Check, ChevronRight } from 'lucide-react';
 
 interface KDSViewProps {
   orders: Order[];
   onUpdateOrderStatus: (orderId: string, status: OrderStatus) => void;
   onUpdateOrderItems: (orderId: string, area: ProductionArea | 'ALL') => void;
+  userRole: Role;
 }
 
-export const KDSView: React.FC<KDSViewProps> = ({ orders, onUpdateOrderStatus, onUpdateOrderItems }) => {
-  const [filterArea, setFilterArea] = useState<ProductionArea | 'ALL'>('ALL');
-  const [stationMode, setStationMode] = useState<boolean>(false);
+export const KDSView: React.FC<KDSViewProps> = ({ orders, onUpdateOrderStatus, onUpdateOrderItems, userRole }) => {
+  // Determinar si el usuario tiene acceso global
+  const hasGlobalAccess = useMemo(() => {
+    const globalRoles = [Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.BRANCH_ADMIN, Role.CASHIER, Role.WAITER];
+    return globalRoles.includes(userRole);
+  }, [userRole]);
+
+  // Determinar área inicial según rol operativo
+  const initialArea = useMemo(() => {
+      if (userRole === Role.GRILL_MASTER) return ProductionArea.GRILL;
+      if (userRole === Role.CHEF) return ProductionArea.KITCHEN;
+      if (userRole === Role.BARTENDER) return ProductionArea.BAR;
+      return 'ALL';
+  }, [userRole]);
+
+  const [filterArea, setFilterArea] = useState<ProductionArea | 'ALL'>(initialArea);
+  const [stationMode, setStationMode] = useState<boolean>(!hasGlobalAccess);
+
+  // Forzar filtro si el rol cambia (por ejemplo si el administrador cambia de usuario simulado)
+  useEffect(() => {
+      setFilterArea(initialArea);
+      setStationMode(!hasGlobalAccess);
+  }, [initialArea, hasGlobalAccess]);
 
   const activeOrders = orders.filter(o => 
     o.status === OrderStatus.PENDING || 
@@ -34,6 +55,21 @@ export const KDSView: React.FC<KDSViewProps> = ({ orders, onUpdateOrderStatus, o
       }
   };
 
+  // Filtrar las pestañas disponibles
+  const availableTabs = useMemo(() => {
+      const allTabs = [
+          { id: 'ALL', label: 'Todo', icon: <Filter size={14} />, roles: 'global' },
+          { id: ProductionArea.KITCHEN, label: 'Cocina', icon: <ChefHat size={14} />, roles: [Role.CHEF] },
+          { id: ProductionArea.GRILL, label: 'Asador', icon: <Flame size={14} />, roles: [Role.GRILL_MASTER] },
+          { id: ProductionArea.BAR, label: 'Barra', icon: <Beer size={14} />, roles: [Role.BARTENDER] }
+      ];
+
+      if (hasGlobalAccess) return allTabs;
+      
+      // Si es operativo, solo ve su pestaña
+      return allTabs.filter(tab => Array.isArray(tab.roles) && tab.roles.includes(userRole));
+  }, [hasGlobalAccess, userRole]);
+
   return (
     <div className="flex flex-col h-full bg-slate-950 text-white overflow-hidden">
       {/* Header Fijo con Filtros Optimizados para Móvil */}
@@ -52,36 +88,35 @@ export const KDSView: React.FC<KDSViewProps> = ({ orders, onUpdateOrderStatus, o
             </div>
             
             <div className="flex w-full md:w-auto items-center gap-2 overflow-hidden">
-                {/* Selector de Áreas con Scroll Horizontal en Móvil */}
-                <div className="flex bg-slate-800 p-1 rounded-xl overflow-x-auto no-scrollbar flex-1 md:flex-none">
-                    {[
-                        { id: 'ALL', label: 'Todo', icon: <Filter size={14} /> },
-                        { id: ProductionArea.KITCHEN, label: 'Cocina', icon: <ChefHat size={14} /> },
-                        { id: ProductionArea.GRILL, label: 'Asador', icon: <Flame size={14} /> },
-                        { id: ProductionArea.BAR, label: 'Barra', icon: <Beer size={14} /> }
-                    ].map(tab => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setFilterArea(tab.id as any)}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-                                filterArea === tab.id 
-                                ? 'bg-brand-600 text-white shadow-lg' 
-                                : 'text-slate-400 hover:text-white'
-                            }`}
-                        >
-                            {tab.icon}
-                            <span className={filterArea === tab.id ? 'inline' : 'hidden sm:inline'}>{tab.label}</span>
-                        </button>
-                    ))}
-                </div>
+                {/* Selector de Áreas - Solo visible/intercambiable si tiene acceso global */}
+                {availableTabs.length > 1 && (
+                    <div className="flex bg-slate-800 p-1 rounded-xl overflow-x-auto no-scrollbar flex-1 md:flex-none">
+                        {availableTabs.map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setFilterArea(tab.id as any)}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                                    filterArea === tab.id 
+                                    ? 'bg-brand-600 text-white shadow-lg' 
+                                    : 'text-slate-400 hover:text-white'
+                                }`}
+                            >
+                                {tab.icon}
+                                <span className={filterArea === tab.id ? 'inline' : 'hidden sm:inline'}>{tab.label}</span>
+                            </button>
+                        ))}
+                    </div>
+                )}
 
-                <button 
-                    onClick={() => setStationMode(!stationMode)}
-                    className={`p-2.5 rounded-xl transition-all border ${stationMode ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : 'bg-slate-800 border-slate-700 text-slate-400'}`}
-                    title="Alternar Modo Estación"
-                >
-                    <Monitor size={18} />
-                </button>
+                {hasGlobalAccess && (
+                    <button 
+                        onClick={() => setStationMode(!stationMode)}
+                        className={`p-2.5 rounded-xl transition-all border ${stationMode ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : 'bg-slate-800 border-slate-700 text-slate-400'}`}
+                        title="Alternar Modo Estación"
+                    >
+                        <Monitor size={18} />
+                    </button>
+                )}
             </div>
         </div>
       </div>

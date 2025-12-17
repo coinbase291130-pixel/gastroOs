@@ -932,8 +932,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                      <div className="p-4 border-t bg-slate-50 rounded-b-2xl flex justify-between items-center">
                           <div className="text-sm text-slate-500">
                               Total Estimado: <span className="font-bold text-xl text-slate-800 ml-2">
-                                  {/* Fix unknown property access in reduce by specifying sum as number */}
-                                  ${Object.values(purchaseOrders).reduce((sum: number, o: any) => sum + (o.quantity * o.cost), 0).toFixed(2)}
+                                  {/* Fix unknown property access in reduce by specifying sum as number and typing Object.values result */}
+                                  ${(Object.values(purchaseOrders) as Array<{ quantity: number, cost: number }>).reduce((sum: number, o) => sum + (o.quantity * o.cost), 0).toFixed(2)}
                               </span>
                           </div>
                           <div className="flex gap-3">

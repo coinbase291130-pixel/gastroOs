@@ -283,7 +283,6 @@ export const POSView: React.FC<POSViewProps> = ({
 
   return (
     <div className="flex h-full bg-slate-50 relative overflow-hidden">
-      {/* ... (Rest of JSX remains similar, but updated logic for modals is above) ... */}
       {/* LEFT SIDE: Products */}
       <div className={`flex-1 flex flex-col p-2 md:p-6 h-full transition-all duration-300 ${isMobileCartOpen ? 'hidden md:flex' : 'flex'}`}>
         
@@ -470,42 +469,44 @@ export const POSView: React.FC<POSViewProps> = ({
             )}
         </div>
 
-        {/* Customer Select */}
-        <div className="px-5 py-3 border-b border-slate-50 bg-white">
-          <div className="flex items-center gap-2">
-              <div className="flex-1 flex items-center space-x-2 text-sm bg-slate-50 border-transparent hover:bg-slate-100 rounded-xl px-3 py-2 transition-colors">
-                <User size={16} className="text-slate-400" />
-                <select 
-                  className="w-full bg-transparent border-none focus:ring-0 text-slate-700 font-bold outline-none cursor-pointer"
-                  onChange={(e) => setSelectedCustomer(activeCustomers.find(c => c.id === e.target.value))}
-                  value={selectedCustomer?.id || ''}
+        {/* Customer Select - Oculto para Meseros */}
+        {userRole !== Role.WAITER && (
+          <div className="px-5 py-3 border-b border-slate-50 bg-white">
+            <div className="flex items-center gap-2">
+                <div className="flex-1 flex items-center space-x-2 text-sm bg-slate-50 border-transparent hover:bg-slate-100 rounded-xl px-3 py-2 transition-colors">
+                  <User size={16} className="text-slate-400" />
+                  <select 
+                    className="w-full bg-transparent border-none focus:ring-0 text-slate-700 font-bold outline-none cursor-pointer"
+                    onChange={(e) => setSelectedCustomer(activeCustomers.find(c => c.id === e.target.value))}
+                    value={selectedCustomer?.id || ''}
+                  >
+                    <option value="">Cliente Ocasional</option>
+                    {activeCustomers.map(c => (
+                      <option key={c.id} value={c.id}>{c.name} ({c.points} pts)</option>
+                    ))}
+                  </select>
+                </div>
+                <button 
+                  onClick={() => setIsNewCustomerModalOpen(true)}
+                  className="bg-slate-800 text-white p-2.5 rounded-xl hover:bg-slate-700 transition-colors shadow-sm"
+                  title="Agregar Nuevo Cliente"
                 >
-                  <option value="">Cliente Ocasional</option>
-                  {activeCustomers.map(c => (
-                    <option key={c.id} value={c.id}>{c.name} ({c.points} pts)</option>
-                  ))}
-                </select>
-              </div>
-              <button 
-                onClick={() => setIsNewCustomerModalOpen(true)}
-                className="bg-slate-800 text-white p-2.5 rounded-xl hover:bg-slate-700 transition-colors shadow-sm"
-                title="Agregar Nuevo Cliente"
-              >
-                  <Plus size={18} />
-              </button>
+                    <Plus size={18} />
+                </button>
+            </div>
+            {isBirthday && (
+                <div className="mt-3 flex items-center bg-gradient-to-r from-pink-50 to-white p-3 rounded-xl border border-pink-100 animate-pulse shadow-sm">
+                    <div className="bg-pink-100 p-2 rounded-lg mr-3">
+                      <Cake className="text-pink-500" size={18} />
+                    </div>
+                    <div className="flex-1">
+                        <p className="text-xs font-bold text-pink-600 uppercase tracking-wider">¡Cumpleaños!</p>
+                        <p className="text-[10px] text-pink-400 font-medium">Descuento disponible ({loyaltyConfig.birthdayDiscountPercentage || 50}% OFF).</p>
+                    </div>
+                </div>
+            )}
           </div>
-          {isBirthday && (
-              <div className="mt-3 flex items-center bg-gradient-to-r from-pink-50 to-white p-3 rounded-xl border border-pink-100 animate-pulse shadow-sm">
-                  <div className="bg-pink-100 p-2 rounded-lg mr-3">
-                    <Cake className="text-pink-500" size={18} />
-                  </div>
-                  <div className="flex-1">
-                      <p className="text-xs font-bold text-pink-600 uppercase tracking-wider">¡Cumpleaños!</p>
-                      <p className="text-[10px] text-pink-400 font-medium">Descuento disponible ({loyaltyConfig.birthdayDiscountPercentage || 50}% OFF).</p>
-                  </div>
-              </div>
-          )}
-        </div>
+        )}
 
         {/* CONTENT AREA */}
         <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-white custom-scrollbar">
@@ -638,7 +639,7 @@ export const POSView: React.FC<POSViewProps> = ({
                 </div>
             )}
 
-          {isBirthday && discountAmount === 0 && (
+          {isBirthday && discountAmount === 0 && userRole !== Role.WAITER && (
               <button 
                 onClick={applyBirthdayDiscount}
                 className="w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white py-2.5 rounded-xl text-sm font-bold flex items-center justify-center animate-in fade-in shadow-lg shadow-pink-200 hover:shadow-pink-300 transition-all mb-3"
@@ -686,11 +687,10 @@ export const POSView: React.FC<POSViewProps> = ({
         </div>
       </div>
 
-      {/* Payment Modal and others remain same, just updated openPaymentModal logic */}
+      {/* ... Resto de los modales (Payment, Table, etc.) se mantienen sin cambios ... */}
       {isPaymentModalOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
           <div className="bg-white rounded-3xl p-8 w-full max-w-xl shadow-2xl animate-in fade-in zoom-in duration-200">
-             {/* ... (Payment Modal Content - kept same) ... */}
             <h3 className="text-2xl font-bold mb-6 text-center text-slate-800">
                 {paymentMethod ? 'Confirmar Pago' : 'Selecciona Método de Pago'}
             </h3>
@@ -850,7 +850,6 @@ export const POSView: React.FC<POSViewProps> = ({
         </div>
       )}
 
-      {/* ... (Other modals remain unchanged) ... */}
       {isTableModalOpen && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
               <div className="bg-white rounded-3xl w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-2xl p-8 animate-in fade-in zoom-in duration-200">
@@ -890,7 +889,6 @@ export const POSView: React.FC<POSViewProps> = ({
           </div>
       )}
 
-      {/* ... Change Table Modal ... */}
        {isChangeTableModalOpen && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
               <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl p-8 animate-in fade-in zoom-in duration-200">
@@ -928,7 +926,6 @@ export const POSView: React.FC<POSViewProps> = ({
           </div>
       )}
 
-      {/* ... New Customer Modal ... */}
       {isNewCustomerModalOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
             <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl p-6 animate-in zoom-in duration-200">

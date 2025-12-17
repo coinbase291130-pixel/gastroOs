@@ -16,22 +16,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
     currentView, onChangeView, onLogout, userRole,
     branches, currentBranchId, onBranchChange
 }) => {
-  // Definición de ítems permitidos por rol
+  // Reordenado y permisos ajustados: El Mesero ya no ve "Clientes"
   const allItems = [
     { id: 'dashboard', label: 'Tablero', icon: <LayoutDashboard size={20} />, roles: [Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.BRANCH_ADMIN, Role.CASHIER] },
+    { id: 'tables', label: 'Mesas', icon: <Grid3X3 size={20} />, roles: [Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.BRANCH_ADMIN, Role.CASHIER, Role.WAITER] },
+    { id: 'pos', label: 'Caja', icon: <Store size={20} />, roles: [Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.BRANCH_ADMIN, Role.CASHIER, Role.WAITER] },
+    { id: 'kds', label: 'KDS', icon: <MonitorPlay size={20} />, roles: [Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.BRANCH_ADMIN, Role.CHEF, Role.GRILL_MASTER, Role.WAITER, Role.CASHIER, Role.BARTENDER] },
+    { id: 'qr-menu', label: 'Menú Digital', icon: <QrCode size={20} />, roles: [Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.BRANCH_ADMIN, Role.WAITER, Role.CASHIER] },
     { id: 'reports', label: 'Reportes', icon: <BarChart3 size={20} />, roles: [Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.BRANCH_ADMIN] },
     { id: 'expenses', label: 'Gastos', icon: <Receipt size={20} />, roles: [Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.BRANCH_ADMIN] },
-    { id: 'tables', label: 'Mesas', icon: <Grid3X3 size={20} />, roles: [Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.BRANCH_ADMIN, Role.CASHIER] },
-    { id: 'pos', label: 'TPV', icon: <Store size={20} />, roles: [Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.BRANCH_ADMIN, Role.CASHIER] },
-    { id: 'kds', label: 'Monitor KDS', icon: <MonitorPlay size={20} />, roles: [Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.BRANCH_ADMIN, Role.CHEF, Role.GRILL_MASTER, Role.WAITER, Role.CASHIER] },
-    { id: 'orders', label: 'Historial', icon: <ShoppingBag size={20} />, roles: [Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.BRANCH_ADMIN, Role.CASHIER] },
+    { id: 'orders', label: 'Historial', icon: <ShoppingBag size={20} />, roles: [Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.BRANCH_ADMIN] },
     { id: 'inventory', label: 'Productos', icon: <Package size={20} />, roles: [Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.BRANCH_ADMIN] },
     { id: 'customers', label: 'Clientes', icon: <Users size={20} />, roles: [Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.BRANCH_ADMIN, Role.CASHIER] },
-    { id: 'qr-menu', label: 'Menú Digital', icon: <QrCode size={20} />, roles: [Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.BRANCH_ADMIN] },
     { id: 'settings', label: 'Ajustes', icon: <Settings size={20} />, roles: [Role.SUPER_ADMIN, Role.COMPANY_ADMIN] },
   ];
 
-  // Filtrar ítems según el rol del usuario
   const menuItems = allItems.filter(item => item.roles.includes(userRole));
 
   const formatRole = (role: string) => {
@@ -41,12 +40,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       case 'CASHIER': return 'CAJERO';
       case 'CHEF': return 'CHEF COCINA';
       case 'GRILL_MASTER': return 'ASADOR MASTER';
+      case 'BARTENDER': return 'BARMAN / BARRA';
       case 'WAITER': return 'MESERO / ATENCIÓN';
       default: return role.replace('_', ' ');
     }
   };
 
-  const isOperationalRole = userRole === Role.CHEF || userRole === Role.GRILL_MASTER || userRole === Role.WAITER;
+  const isStrictlyOperational = userRole === Role.CHEF || userRole === Role.GRILL_MASTER || userRole === Role.BARTENDER;
 
   return (
     <>
@@ -65,8 +65,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {formatRole(userRole)}
           </p>
 
-          {/* Selector de Sucursal solo para administradores */}
-          {!isOperationalRole && (
+          {!isStrictlyOperational && (
             <div className="mt-5 pt-5 border-t border-slate-800 space-y-3">
                 <div>
                     <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1.5 block flex items-center gap-1">
@@ -104,9 +103,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {item.icon}
               </span>
               <span>{item.label}</span>
-              {currentView === item.id && (
-                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-              )}
             </button>
           ))}
         </nav>
@@ -114,7 +110,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="p-4 border-t border-slate-800 bg-slate-900/50">
           <button
             onClick={onLogout}
-            className="w-full flex items-center justify-center space-x-2 p-3 rounded-xl bg-slate-800 hover:bg-red-600 hover:shadow-lg hover:shadow-red-900/20 text-slate-300 hover:text-white transition-all duration-200 group"
+            className="w-full flex items-center justify-center space-x-2 p-3 rounded-xl bg-slate-800 hover:bg-red-600 text-slate-300 hover:text-white transition-all duration-200 group"
           >
             <LogOut size={18} className="group-hover:-translate-x-1 transition-transform" />
             <span className="font-medium">Cerrar Sesión</span>
@@ -122,9 +118,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {/* Mobile Bottom Navigation */}
+      {/* Mobile Bottom Navigation - Solo opciones de vista, Logout movido al header superior */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] print:hidden">
         <div className="flex justify-around items-center h-16 px-1">
+          {/* Mostramos hasta 5 ítems máximo en la barra inferior para evitar saturación */}
           {menuItems.slice(0, 5).map((item) => (
             <button
               key={item.id}
@@ -137,17 +134,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   size: 22, 
                   strokeWidth: currentView === item.id ? 2.5 : 2 
               })}
-              {currentView === item.id && (
-                  <span className="w-1 h-1 rounded-full bg-brand-600 absolute bottom-2"></span>
-              )}
+              <span className="text-[10px] font-bold truncate max-w-[60px]">{item.label.split(' ')[0]}</span>
             </button>
           ))}
-          <button
-            onClick={onLogout}
-             className="flex flex-col items-center justify-center w-full h-full space-y-1 text-red-400 active:bg-red-50"
-          >
-            <LogOut size={22} />
-          </button>
         </div>
       </div>
     </>

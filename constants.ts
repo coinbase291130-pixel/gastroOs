@@ -1,3 +1,4 @@
+
 import { Branch, Company, Product, Role, User, InventoryItem, Customer, ProductionArea, Table, TableStatus, CashRegister, Supplier, Expense, ExpenseCategory, Category } from "./types";
 
 export const MOCK_COMPANY: Company = {
@@ -55,6 +56,7 @@ export const MOCK_USERS: User[] = [
   { id: 'u3', name: 'Chef Carlos', email: 'chef@gastro.com', pin: '3333', role: Role.CHEF, branchId: 'b1', isActive: true },
   { id: 'u4', name: 'Asador Mike', email: 'mike@gastro.com', pin: '4444', role: Role.GRILL_MASTER, branchId: 'b1', isActive: true },
   { id: 'u5', name: 'Mesera Sofia', email: 'sofia@gastro.com', pin: '5555', role: Role.WAITER, branchId: 'b1', isActive: true },
+  { id: 'u6', name: 'Barra Elena', email: 'elena@gastro.com', pin: '6666', role: Role.BARTENDER, branchId: 'b1', isActive: true },
 ];
 
 // Proveedores
