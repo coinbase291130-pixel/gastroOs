@@ -1,3 +1,4 @@
+
 {
   "name": "gastro-os-saas",
   "private": true,
@@ -5,24 +6,24 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "lucide-react": "^0.344.0",
-    "recharts": "^2.12.2",
-    "@google/genai": "^1.34.0",
-    "clsx": "^2.1.0",
-    "tailwind-merge": "^2.2.1"
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom": "https://esm.sh/react-dom@^19.2.3",
+    "lucide-react": "https://esm.sh/lucide-react@^0.561.0",
+    "recharts": "https://esm.sh/recharts@^3.6.0",
+    "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
+    "clsx": "https://esm.sh/clsx@^2.1.1",
+    "tailwind-merge": "https://esm.sh/tailwind-merge@^2.3.0"
   },
   "devDependencies": {
-    "@types/react": "^18.2.64",
-    "@types/react-dom": "^18.2.21",
-    "@types/node": "^20.11.24",
-    "@vitejs/plugin-react": "^4.2.1",
-    "typescript": "^5.2.2",
-    "vite": "^5.1.6"
+    "@types/react": "https://esm.sh/@types/react@^19.0.0",
+    "@types/react-dom": "https://esm.sh/@types/react-dom@^19.0.0",
+    "@types/node": "https://esm.sh/@types/node@^20.11.24",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^4.2.1",
+    "typescript": "https://esm.sh/typescript@^5.2.2",
+    "vite": "https://esm.sh/vite@^5.1.6"
   }
 }

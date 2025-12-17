@@ -62,7 +62,7 @@ export const POSView: React.FC<POSViewProps> = ({
 
   const activeCustomers = customers.filter(c => c.isActive);
 
-  // EFECTO DE CARGA DE MESA: Solo se dispara cuando cambia el ID de la mesa seleccionada
+  // EFECTO DE CARGA DE MESA: Detecta si la mesa está ocupada y carga sus datos/órdenes
   useEffect(() => {
     if (selectedTable) {
         setOrderType(OrderType.DINE_IN);
@@ -74,7 +74,7 @@ export const POSView: React.FC<POSViewProps> = ({
             o.status !== OrderStatus.COMPLETED
         );
 
-        // Si hay pedido y tiene cliente, lo seleccionamos
+        // Si hay pedido y tiene cliente, lo seleccionamos automáticamente
         if (activeOrder?.customerId) {
             const customer = customers.find(c => c.id === activeOrder.customerId);
             if (customer) setSelectedCustomer(customer);
@@ -82,17 +82,14 @@ export const POSView: React.FC<POSViewProps> = ({
             setSelectedCustomer(undefined);
         }
 
-        // Si la mesa está ocupada, mostramos la "Cuenta" (bill) por defecto AL ENTRAR
+        // Si la mesa está ocupada, mostramos la pestaña "Cuenta" (bill) por defecto
         if (selectedTable.status === TableStatus.OCCUPIED) {
             setActiveTab('bill');
         } else {
             setActiveTab('cart');
         }
-    } else {
-        // Limpiar cliente al deseleccionar mesa si el carrito está vacío
-        if (cart.length === 0) setSelectedCustomer(undefined);
     }
-  }, [selectedTable?.id]); // IMPORTANTE: Solo reaccionar al cambio de mesa, no a cambios en 'orders'
+  }, [selectedTable?.id, orders.length]); // Solo reaccionar al cambio de mesa o nuevas órdenes
 
   useEffect(() => {
       if (selectedCustomer?.birthDate) {
@@ -470,8 +467,10 @@ export const POSView: React.FC<POSViewProps> = ({
                     <button 
                         onClick={() => {
                             setActiveTab('cart');
-                            // Si estamos en móvil, cerramos el drawer para mostrar el menú
-                            if (window.innerWidth < 768) setIsMobileCartOpen(false);
+                            // Si estamos en móvil, cerramos el drawer para que se vea el menú de productos
+                            if (window.innerWidth < 768) {
+                                setIsMobileCartOpen(false);
+                            }
                         }}
                         className={`flex-1 py-1.5 md:py-2 text-xs md:text-sm font-bold flex items-center justify-center gap-2 rounded-lg transition-all ${
                             activeTab === 'cart' 
@@ -539,7 +538,7 @@ export const POSView: React.FC<POSViewProps> = ({
         )}
 
         {/* CONTENT AREA */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-5 space-y-3 md:space-y-4 bg-white custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 md:p-5 space-y-3 md:space-y-4 bg-white custom-scrollbar pb-24">
           
           {/* VIEW: NEW CART */}
           {(!selectedTable || activeTab === 'cart') && (
@@ -547,9 +546,9 @@ export const POSView: React.FC<POSViewProps> = ({
                  {cart.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-slate-400 opacity-60">
                         <div className="bg-slate-50 p-5 md:p-6 rounded-full mb-4">
-                            <ShoppingBag size={32} md:size={40} />
+                            <ShoppingBag size={40} />
                         </div>
-                        <p className="font-medium text-sm md:text-base">El carrito está vacío</p>
+                        <p className="font-medium text-sm md:text-base text-center">El carrito está vacío.<br/>Selecciona productos del menú.</p>
                     </div>
                 ) : (
                     cart.map(item => (
@@ -574,8 +573,6 @@ export const POSView: React.FC<POSViewProps> = ({
                     </div>
                     ))
                 )}
-                {/* Spacing for mobile to avoid content being hidden under totals */}
-                <div className="h-20 md:hidden"></div>
               </>
           )}
 
@@ -584,7 +581,7 @@ export const POSView: React.FC<POSViewProps> = ({
               <div className="space-y-3 md:space-y-4">
                   {tableOrders.length === 0 ? (
                       <div className="text-center text-slate-400 py-10 opacity-60">
-                          <Clock size={40} md:size={48} className="mx-auto mb-4 opacity-50" />
+                          <Clock size={48} className="mx-auto mb-4 opacity-50" />
                           <p className="text-sm md:text-base">Aún no hay pedidos enviados.</p>
                       </div>
                   ) : (
@@ -630,14 +627,12 @@ export const POSView: React.FC<POSViewProps> = ({
                           </div>
                       ))
                   )}
-                  {/* Spacing for mobile */}
-                  <div className="h-20 md:hidden"></div>
               </div>
           )}
 
         </div>
 
-        {/* Totals Section - Reduced paddings and gaps on mobile */}
+        {/* Totals Section */}
         <div className="p-3 md:p-5 bg-white border-t border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-20 pb-20 md:pb-5">
             {selectedTable ? (
                 <div className="space-y-1 md:space-y-2 mb-3 md:mb-4">
