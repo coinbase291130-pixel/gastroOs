@@ -62,11 +62,37 @@ export const POSView: React.FC<POSViewProps> = ({
 
   const activeCustomers = customers.filter(c => c.isActive);
 
+  // EFECTO DE CARGA DE MESA: Solo se dispara cuando cambia el ID de la mesa seleccionada
   useEffect(() => {
     if (selectedTable) {
         setOrderType(OrderType.DINE_IN);
+        
+        // Buscar si hay un pedido activo para esta mesa
+        const activeOrder = orders.find(o => 
+            o.tableId === selectedTable.id && 
+            o.status !== OrderStatus.CANCELLED && 
+            o.status !== OrderStatus.COMPLETED
+        );
+
+        // Si hay pedido y tiene cliente, lo seleccionamos
+        if (activeOrder?.customerId) {
+            const customer = customers.find(c => c.id === activeOrder.customerId);
+            if (customer) setSelectedCustomer(customer);
+        } else if (cart.length === 0) {
+            setSelectedCustomer(undefined);
+        }
+
+        // Si la mesa está ocupada, mostramos la "Cuenta" (bill) por defecto AL ENTRAR
+        if (selectedTable.status === TableStatus.OCCUPIED) {
+            setActiveTab('bill');
+        } else {
+            setActiveTab('cart');
+        }
+    } else {
+        // Limpiar cliente al deseleccionar mesa si el carrito está vacío
+        if (cart.length === 0) setSelectedCustomer(undefined);
     }
-  }, [selectedTable]);
+  }, [selectedTable?.id]); // IMPORTANTE: Solo reaccionar al cambio de mesa, no a cambios en 'orders'
 
   useEffect(() => {
       if (selectedCustomer?.birthDate) {
@@ -410,7 +436,7 @@ export const POSView: React.FC<POSViewProps> = ({
           >
             <div className="flex items-center space-x-3">
               <div className="bg-white/20 w-8 h-8 flex items-center justify-center rounded-full font-bold text-sm">
-                {cart.length > 0 ? totalItems : tableOrders.length}
+                {cart.length > 0 ? totalItems : (tableOrders[0]?.items.length || 0)}
               </div>
               <span className="font-bold text-lg">${grandTotal.toFixed(2)}</span>
             </div>
@@ -423,14 +449,14 @@ export const POSView: React.FC<POSViewProps> = ({
 
       {/* RIGHT SIDE: Cart Drawer */}
       <div className={`
-        fixed md:relative inset-0 md:inset-auto z-40 bg-white shadow-2xl flex flex-col h-full 
+        fixed md:relative inset-x-0 top-0 bottom-16 md:bottom-0 md:inset-auto md:right-0 z-40 bg-white shadow-2xl flex flex-col h-[calc(100%-64px)] md:h-full 
         md:w-[500px] md:translate-x-0 transition-transform duration-300 border-l border-slate-100
         ${isMobileCartOpen ? 'translate-x-0' : 'translate-x-full'}
       `}>
         {/* Cart Header */}
-        <div className="p-5 border-b border-slate-100 bg-white z-10">
-            <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-slate-800 truncate pr-2 flex items-center gap-2">
+        <div className="p-4 md:p-5 border-b border-slate-100 bg-white z-10">
+            <div className="flex justify-between items-center mb-3 md:mb-4">
+                <h2 className="text-lg md:text-xl font-bold text-slate-800 truncate pr-2 flex items-center gap-2">
                     <ShoppingBag size={22} className="text-brand-600" />
                     {selectedTable ? `Mesa: ${selectedTable.name}` : 'Pedido Actual'}
                 </h2>
@@ -442,8 +468,12 @@ export const POSView: React.FC<POSViewProps> = ({
             {selectedTable ? (
                 <div className="flex bg-slate-100 p-1 rounded-xl">
                     <button 
-                        onClick={() => setActiveTab('cart')}
-                        className={`flex-1 py-2 text-sm font-bold flex items-center justify-center gap-2 rounded-lg transition-all ${
+                        onClick={() => {
+                            setActiveTab('cart');
+                            // Si estamos en móvil, cerramos el drawer para mostrar el menú
+                            if (window.innerWidth < 768) setIsMobileCartOpen(false);
+                        }}
+                        className={`flex-1 py-1.5 md:py-2 text-xs md:text-sm font-bold flex items-center justify-center gap-2 rounded-lg transition-all ${
                             activeTab === 'cart' 
                             ? 'bg-white text-brand-600 shadow-sm' 
                             : 'text-slate-500 hover:text-slate-700'
@@ -453,7 +483,7 @@ export const POSView: React.FC<POSViewProps> = ({
                     </button>
                     <button 
                         onClick={() => setActiveTab('bill')}
-                        className={`flex-1 py-2 text-sm font-bold flex items-center justify-center gap-2 rounded-lg transition-all ${
+                        className={`flex-1 py-1.5 md:py-2 text-xs md:text-sm font-bold flex items-center justify-center gap-2 rounded-lg transition-all ${
                             activeTab === 'bill' 
                             ? 'bg-white text-brand-600 shadow-sm' 
                             : 'text-slate-500 hover:text-slate-700'
@@ -471,12 +501,12 @@ export const POSView: React.FC<POSViewProps> = ({
 
         {/* Customer Select - Oculto para Meseros */}
         {userRole !== Role.WAITER && (
-          <div className="px-5 py-3 border-b border-slate-50 bg-white">
+          <div className="px-4 md:px-5 py-2 md:py-3 border-b border-slate-50 bg-white">
             <div className="flex items-center gap-2">
-                <div className="flex-1 flex items-center space-x-2 text-sm bg-slate-50 border-transparent hover:bg-slate-100 rounded-xl px-3 py-2 transition-colors">
+                <div className="flex-1 flex items-center space-x-2 text-sm bg-slate-50 border-transparent hover:bg-slate-100 rounded-xl px-3 py-1.5 md:py-2 transition-colors">
                   <User size={16} className="text-slate-400" />
                   <select 
-                    className="w-full bg-transparent border-none focus:ring-0 text-slate-700 font-bold outline-none cursor-pointer"
+                    className="w-full bg-transparent border-none focus:ring-0 text-slate-700 font-bold outline-none cursor-pointer text-xs md:text-sm"
                     onChange={(e) => setSelectedCustomer(activeCustomers.find(c => c.id === e.target.value))}
                     value={selectedCustomer?.id || ''}
                   >
@@ -488,20 +518,20 @@ export const POSView: React.FC<POSViewProps> = ({
                 </div>
                 <button 
                   onClick={() => setIsNewCustomerModalOpen(true)}
-                  className="bg-slate-800 text-white p-2.5 rounded-xl hover:bg-slate-700 transition-colors shadow-sm"
+                  className="bg-slate-800 text-white p-2 md:p-2.5 rounded-xl hover:bg-slate-700 transition-colors shadow-sm"
                   title="Agregar Nuevo Cliente"
                 >
                     <Plus size={18} />
                 </button>
             </div>
             {isBirthday && (
-                <div className="mt-3 flex items-center bg-gradient-to-r from-pink-50 to-white p-3 rounded-xl border border-pink-100 animate-pulse shadow-sm">
-                    <div className="bg-pink-100 p-2 rounded-lg mr-3">
-                      <Cake className="text-pink-500" size={18} />
+                <div className="mt-2 md:mt-3 flex items-center bg-gradient-to-r from-pink-50 to-white p-2 md:p-3 rounded-xl border border-pink-100 animate-pulse shadow-sm">
+                    <div className="bg-pink-100 p-1.5 md:p-2 rounded-lg mr-3">
+                      <Cake className="text-pink-500" size={16} />
                     </div>
                     <div className="flex-1">
-                        <p className="text-xs font-bold text-pink-600 uppercase tracking-wider">¡Cumpleaños!</p>
-                        <p className="text-[10px] text-pink-400 font-medium">Descuento disponible ({loyaltyConfig.birthdayDiscountPercentage || 50}% OFF).</p>
+                        <p className="text-[10px] md:text-xs font-bold text-pink-600 uppercase tracking-wider">¡Cumpleaños!</p>
+                        <p className="text-[9px] md:text-[10px] text-pink-400 font-medium">Descuento ({loyaltyConfig.birthdayDiscountPercentage || 50}% OFF).</p>
                     </div>
                 </div>
             )}
@@ -509,83 +539,85 @@ export const POSView: React.FC<POSViewProps> = ({
         )}
 
         {/* CONTENT AREA */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-white custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 md:p-5 space-y-3 md:space-y-4 bg-white custom-scrollbar">
           
           {/* VIEW: NEW CART */}
           {(!selectedTable || activeTab === 'cart') && (
               <>
                  {cart.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-slate-400 opacity-60">
-                        <div className="bg-slate-50 p-6 rounded-full mb-4">
-                            <ShoppingBag size={40} />
+                        <div className="bg-slate-50 p-5 md:p-6 rounded-full mb-4">
+                            <ShoppingBag size={32} md:size={40} />
                         </div>
-                        <p className="font-medium">El carrito está vacío</p>
+                        <p className="font-medium text-sm md:text-base">El carrito está vacío</p>
                     </div>
                 ) : (
                     cart.map(item => (
                     <div key={item.cartId} className="flex justify-between items-start group animate-in slide-in-from-right-2 duration-300">
                         <div className="flex-1 pr-3">
-                            <h4 className="font-bold text-slate-800 text-sm leading-tight mb-1">{item.product.name}</h4>
-                            <div className="text-xs font-medium text-slate-400">${item.product.price.toFixed(2)} c/u</div>
+                            <h4 className="font-bold text-slate-800 text-xs md:text-sm leading-tight mb-1">{item.product.name}</h4>
+                            <div className="text-[10px] md:text-xs font-medium text-slate-400">${item.product.price.toFixed(2)} c/u</div>
                         </div>
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-2 md:space-x-3">
                             <div className="flex items-center bg-slate-50 rounded-lg p-0.5 border border-slate-100">
-                                <button onClick={() => updateQuantity(item.cartId, -1)} className="p-1.5 hover:bg-white hover:shadow-sm rounded-md text-slate-500 hover:text-red-500 transition-all w-7 h-7 flex items-center justify-center"><Minus size={12}/></button>
-                                <span className="w-6 text-center text-sm font-bold text-slate-800">{item.quantity}</span>
-                                <button onClick={() => updateQuantity(item.cartId, 1)} className="p-1.5 hover:bg-white hover:shadow-sm rounded-md text-slate-500 hover:text-green-500 transition-all w-7 h-7 flex items-center justify-center"><Plus size={12}/></button>
+                                <button onClick={() => updateQuantity(item.cartId, -1)} className="p-1 md:p-1.5 hover:bg-white hover:shadow-sm rounded-md text-slate-500 hover:text-red-500 transition-all w-6 h-6 md:w-7 md:h-7 flex items-center justify-center"><Minus size={10}/></button>
+                                <span className="w-5 md:w-6 text-center text-xs md:text-sm font-bold text-slate-800">{item.quantity}</span>
+                                <button onClick={() => updateQuantity(item.cartId, 1)} className="p-1 md:p-1.5 hover:bg-white hover:shadow-sm rounded-md text-slate-500 hover:text-green-500 transition-all w-6 h-6 md:w-7 md:h-7 flex items-center justify-center"><Plus size={10}/></button>
                             </div>
-                            <div className="w-16 text-right font-bold text-slate-800 text-sm">
+                            <div className="w-14 md:w-16 text-right font-bold text-slate-800 text-xs md:text-sm">
                                 ${(item.product.price * item.quantity).toFixed(2)}
                             </div>
                             <button onClick={() => removeFromCart(item.cartId)} className="text-slate-300 hover:text-red-500 transition-colors">
-                                <Trash2 size={16} />
+                                <Trash2 size={14} md:size={16} />
                             </button>
                         </div>
                     </div>
                     ))
                 )}
+                {/* Spacing for mobile to avoid content being hidden under totals */}
+                <div className="h-20 md:hidden"></div>
               </>
           )}
 
           {/* VIEW: TABLE BILL (HISTORY) */}
           {selectedTable && activeTab === 'bill' && (
-              <div className="space-y-4">
+              <div className="space-y-3 md:space-y-4">
                   {tableOrders.length === 0 ? (
                       <div className="text-center text-slate-400 py-10 opacity-60">
-                          <Clock size={48} className="mx-auto mb-4 opacity-50" />
-                          <p>Aún no hay pedidos enviados.</p>
+                          <Clock size={40} md:size={48} className="mx-auto mb-4 opacity-50" />
+                          <p className="text-sm md:text-base">Aún no hay pedidos enviados.</p>
                       </div>
                   ) : (
                       tableOrders.map(order => (
-                          <div key={order.id} className="border border-slate-100 rounded-2xl p-4 bg-slate-50/50 hover:bg-slate-50 transition-colors">
-                              <div className="flex justify-between items-center mb-3 border-b border-slate-100 pb-2">
+                          <div key={order.id} className="border border-slate-100 rounded-xl md:rounded-2xl p-3 md:p-4 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                              <div className="flex justify-between items-center mb-2 md:mb-3 border-b border-slate-100 pb-2">
                                   <div>
-                                      <span className="text-xs font-bold text-slate-500 block uppercase tracking-wide">Orden #{order.id.slice(0,4)}</span>
-                                      <span className="text-[10px] text-slate-400 font-medium">{new Date(order.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                      <span className="text-[10px] font-bold text-slate-500 block uppercase tracking-wide">Orden #{order.id.slice(0,4)}</span>
+                                      <span className="text-[9px] md:text-[10px] text-slate-400 font-medium">{new Date(order.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${
+                                      <span className={`text-[9px] md:text-[10px] uppercase font-bold px-1.5 md:py-0.5 rounded ${
                                           order.status === OrderStatus.READY ? 'bg-emerald-100 text-emerald-700 animate-pulse' : 'bg-white border border-slate-200 text-slate-500'
                                       }`}>
                                           {order.status}
                                       </span>
                                       <button 
                                         onClick={() => onCancelOrder(order)}
-                                        className="text-slate-300 hover:text-red-500 p-1.5 hover:bg-red-50 rounded-lg transition-colors"
+                                        className="text-slate-300 hover:text-red-500 p-1 md:p-1.5 hover:bg-red-50 rounded-lg transition-colors"
                                         title="Anular Pedido"
                                       >
-                                          <Ban size={14} />
+                                          <Ban size={12} md:size={14} />
                                       </button>
                                   </div>
                               </div>
-                              <div className="space-y-2">
+                              <div className="space-y-1.5 md:space-y-2">
                                   {order.items.map((item, idx) => (
-                                      <div key={idx} className="flex justify-between text-sm items-center group">
+                                      <div key={idx} className="flex justify-between text-xs md:text-sm items-center group">
                                           <div className="flex items-center gap-2">
                                               {item.status === ItemStatus.READY ? (
-                                                  <Check size={14} className="text-emerald-500" />
+                                                  <Check size={12} md:size={14} className="text-emerald-500" />
                                               ) : (
-                                                  <ChefHat size={14} className="text-slate-300 group-hover:text-brand-400 transition-colors" />
+                                                  <ChefHat size={12} md:size={14} className="text-slate-300 group-hover:text-brand-400 transition-colors" />
                                               )}
                                               <span className={`text-slate-700 font-medium ${item.status === ItemStatus.READY ? 'text-emerald-700' : ''}`}>
                                                   {item.quantity}x {item.product.name}
@@ -598,41 +630,43 @@ export const POSView: React.FC<POSViewProps> = ({
                           </div>
                       ))
                   )}
+                  {/* Spacing for mobile */}
+                  <div className="h-20 md:hidden"></div>
               </div>
           )}
 
         </div>
 
-        {/* Totals Section */}
-        <div className="p-5 bg-white border-t border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-20">
+        {/* Totals Section - Reduced paddings and gaps on mobile */}
+        <div className="p-3 md:p-5 bg-white border-t border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-20 pb-20 md:pb-5">
             {selectedTable ? (
-                <div className="space-y-2 mb-4">
-                    <div className="flex justify-between text-sm text-slate-500 font-medium">
+                <div className="space-y-1 md:space-y-2 mb-3 md:mb-4">
+                    <div className="flex justify-between text-xs md:text-sm text-slate-500 font-medium">
                         <span>Cuenta Anterior</span>
                         <span>${tableBillTotal.toFixed(2)}</span>
                     </div>
                     {cart.length > 0 && (
-                        <div className="flex justify-between text-sm text-brand-600 font-bold bg-brand-50 p-2 rounded-lg">
+                        <div className="flex justify-between text-xs md:text-sm text-brand-600 font-bold bg-brand-50 p-1.5 md:p-2 rounded-lg">
                             <span>+ Nuevo Pedido</span>
                             <span>${currentCartTotal.toFixed(2)}</span>
                         </div>
                     )}
-                     <div className="flex justify-between text-2xl font-bold text-slate-800 pt-2 border-t border-slate-100">
+                     <div className="flex justify-between text-xl md:text-2xl font-bold text-slate-800 pt-1.5 md:pt-2 border-t border-slate-100">
                         <span>Total</span>
                         <span>${grandTotal.toFixed(2)}</span>
                     </div>
                 </div>
             ) : (
-                <div className="space-y-1 mb-4">
-                     <div className="flex justify-between text-sm text-slate-500 font-medium">
+                <div className="space-y-0.5 md:space-y-1 mb-3 md:mb-4">
+                     <div className="flex justify-between text-xs md:text-sm text-slate-500 font-medium">
                         <span>Subtotal</span>
                         <span>${currentCartSubtotal.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between text-sm text-slate-500 font-medium">
+                    <div className="flex justify-between text-xs md:text-sm text-slate-500 font-medium">
                         <span>Impuestos ({(taxRate * 100).toFixed(0)}%)</span>
                         <span>${currentCartTax.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between text-2xl font-bold text-slate-800 pt-3 border-t border-slate-100 mt-2">
+                    <div className="flex justify-between text-xl md:text-2xl font-bold text-slate-800 pt-2 md:pt-3 border-t border-slate-100 mt-1 md:mt-2">
                         <span>Total</span>
                         <span>${grandTotal.toFixed(2)}</span>
                     </div>
@@ -642,29 +676,29 @@ export const POSView: React.FC<POSViewProps> = ({
           {isBirthday && discountAmount === 0 && userRole !== Role.WAITER && (
               <button 
                 onClick={applyBirthdayDiscount}
-                className="w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white py-2.5 rounded-xl text-sm font-bold flex items-center justify-center animate-in fade-in shadow-lg shadow-pink-200 hover:shadow-pink-300 transition-all mb-3"
+                className="w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white py-2 rounded-xl text-xs md:text-sm font-bold flex items-center justify-center animate-in fade-in shadow-lg shadow-pink-200 hover:shadow-pink-300 transition-all mb-2 md:mb-3"
               >
-                  <Gift size={16} className="mr-2" /> Aplicar Descuento Cumpleañero ({loyaltyConfig.birthdayDiscountPercentage || 50}%)
+                  <Gift size={14} className="mr-2" /> Descuento Cumpleaños ({loyaltyConfig.birthdayDiscountPercentage || 50}%)
               </button>
           )}
 
           {discountAmount > 0 && (
-              <div className="flex justify-between items-center bg-emerald-50 p-3 rounded-xl border border-emerald-100 text-sm mb-3">
-                  <span className="text-emerald-700 font-bold flex items-center"><Gift size={16} className="mr-2"/> Descuento Aplicado</span>
+              <div className="flex justify-between items-center bg-emerald-50 p-2 md:p-3 rounded-xl border border-emerald-100 text-[10px] md:text-sm mb-2 md:mb-3">
+                  <span className="text-emerald-700 font-bold flex items-center"><Gift size={14} className="mr-2"/> Descuento Aplicado</span>
                   <div className="flex items-center">
                       <span className="font-bold text-emerald-700 mr-2">-${discountAmount.toFixed(2)}</span>
-                      <button onClick={removeDiscount} className="text-emerald-400 hover:text-red-500 transition-colors"><X size={16}/></button>
+                      <button onClick={removeDiscount} className="text-emerald-400 hover:text-red-500 transition-colors"><X size={14}/></button>
                   </div>
               </div>
           )}
 
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2 md:gap-3">
               {cart.length > 0 && (
                   <button 
                     onClick={handleSendOrder}
-                    className="w-full bg-slate-800 hover:bg-slate-900 text-white py-3.5 rounded-xl font-bold text-lg shadow-lg shadow-slate-200 transition-all flex items-center justify-center space-x-2 active:scale-95"
+                    className="w-full bg-slate-800 hover:bg-slate-900 text-white py-2.5 md:py-3.5 rounded-xl font-bold text-sm md:text-lg shadow-lg shadow-slate-200 transition-all flex items-center justify-center space-x-2 active:scale-95"
                   >
-                    <Send size={20} />
+                    <Send size={18} md:size={20} />
                     <span>Enviar a Cocina</span>
                   </button>
               )}
@@ -672,13 +706,13 @@ export const POSView: React.FC<POSViewProps> = ({
               <button 
                 disabled={grandTotal === 0 && discountAmount === 0}
                 onClick={openPaymentModal}
-                className={`w-full py-4 rounded-xl font-bold text-lg shadow-lg transition-all flex items-center justify-center space-x-2 active:scale-95 ${
+                className={`w-full py-3 md:py-4 rounded-xl font-bold text-sm md:text-lg shadow-lg transition-all flex items-center justify-center space-x-2 active:scale-95 ${
                     selectedTable 
                     ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200' 
                     : 'bg-brand-600 hover:bg-brand-700 text-white shadow-brand-200 disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none'
                 }`}
               >
-                {selectedTable ? <ReceiptText size={20} /> : <Banknote size={20} />}
+                {selectedTable ? <ReceiptText size={18} md:size={20} /> : <Banknote size={18} md:size={20} />}
                 <span>
                     {selectedTable ? `Cerrar Cuenta` : `Cobrar`}
                 </span>
@@ -687,7 +721,7 @@ export const POSView: React.FC<POSViewProps> = ({
         </div>
       </div>
 
-      {/* ... Resto de los modales (Payment, Table, etc.) se mantienen sin cambios ... */}
+      {/* MODALS SECTION */}
       {isPaymentModalOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
           <div className="bg-white rounded-3xl p-8 w-full max-w-xl shadow-2xl animate-in fade-in zoom-in duration-200">

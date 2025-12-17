@@ -1,4 +1,3 @@
-
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
@@ -15,7 +14,7 @@ export default defineConfig(({ mode }) => {
       'process.env': {}
     },
     build: {
-      outDir: 'build', // Vercel espera 'build' por defecto en muchas configuraciones
+      outDir: 'dist', // Cambiado de 'build' a 'dist' para compatibilidad con Vercel
       chunkSizeWarningLimit: 1600, // Aumentar límite para silenciar advertencia de tamaño
     }
   }
