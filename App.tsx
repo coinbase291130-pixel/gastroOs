@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { MOCK_BRANCHES, MOCK_COMPANY, MOCK_CUSTOMERS, MOCK_INVENTORY, MOCK_PRODUCTS, MOCK_USERS, MOCK_TABLES, MOCK_REGISTERS, MOCK_SUPPLIERS, MOCK_EXPENSES } from './constants';
-import { CartItem, Customer, Order, OrderStatus, OrderType, PaymentMethod, Role, User, Table, TableStatus, Product, LoyaltyConfig, CashRegister, RegisterSession, InventoryItem, ProductionArea, ItemStatus, Supplier, Expense, Branch } from './types';
+import { MOCK_BRANCHES, MOCK_COMPANY, MOCK_CUSTOMERS, MOCK_INVENTORY, MOCK_PRODUCTS, MOCK_USERS, MOCK_TABLES, MOCK_REGISTERS, MOCK_SUPPLIERS, MOCK_EXPENSES, MOCK_CATEGORIES } from './constants';
+import { CartItem, Customer, Order, OrderStatus, OrderType, PaymentMethod, Role, User, Table, TableStatus, Product, LoyaltyConfig, CashRegister, RegisterSession, InventoryItem, ProductionArea, ItemStatus, Supplier, Expense, Branch, Category } from './types';
 import { Sidebar } from './components/Sidebar';
 import { POSView } from './components/POSView';
 import { InventoryView } from './components/InventoryView';
@@ -122,6 +122,7 @@ const App: React.FC = () => {
   const [customers, setCustomers] = useState(MOCK_CUSTOMERS); 
   const [users, setUsers] = useState<User[]>(MOCK_USERS);
   const [branches, setBranches] = useState<Branch[]>(MOCK_BRANCHES);
+  const [categories, setCategories] = useState<Category[]>(MOCK_CATEGORIES);
   
   // Branch Specific Data
   const [orders, setOrders] = useState<Order[]>([]);
@@ -283,6 +284,22 @@ const App: React.FC = () => {
       notify('Caja movida a la papelera.', 'info');
   };
 
+  const handleAddCategory = (newCat: Category) => {
+      setCategories(prev => [...prev, newCat]);
+      notify('Categoría creada exitosamente.', 'success');
+  };
+  
+  const handleUpdateCategory = (updatedCat: Category) => {
+      setCategories(prev => prev.map(c => c.id === updatedCat.id ? updatedCat : c));
+      notify('Categoría actualizada exitosamente.', 'success');
+  };
+
+  const handleDeleteCategory = (catId: string) => {
+      setCategories(prev => prev.map(c => c.id === catId ? { ...c, isActive: false } : c));
+      notify('Categoría movida a la papelera.', 'info');
+  };
+
+
   const handleSelectTable = (table: Table | undefined) => {
       if (!table) {
           setSelectedTable(undefined);
@@ -372,6 +389,11 @@ const App: React.FC = () => {
       }
   };
 
+  const handleAddInventory = (newItem: InventoryItem) => {
+      setInventory(prev => [...prev, newItem]);
+      notify('Insumo registrado exitosamente.', 'success');
+  };
+
   const handleUpdateInventory = (item: InventoryItem) => {
       setInventory(prev => prev.map(i => i.id === item.id ? item : i));
       notify('Inventario actualizado.', 'success');
@@ -387,16 +409,26 @@ const App: React.FC = () => {
       notify('Proveedor actualizado.', 'success');
   };
 
+  // Logic to deduct inventory recursively (Combos support)
   const deductInventory = (items: CartItem[]) => {
       const newInventory = [...inventory]; 
       let lowStockAlerts: string[] = [];
 
-      items.forEach(cartItem => {
-          if (cartItem.product.ingredients && cartItem.product.ingredients.length > 0) {
-              cartItem.product.ingredients.forEach(ing => {
+      const processProductDeduction = (product: Product, quantity: number) => {
+          if (product.isCombo && product.comboItems) {
+              // Si es combo, procesar recursivamente los items del combo
+              product.comboItems.forEach(comboItem => {
+                  const subProduct = products.find(p => p.id === comboItem.productId);
+                  if (subProduct) {
+                      processProductDeduction(subProduct, quantity * comboItem.quantity);
+                  }
+              });
+          } else if (product.ingredients && product.ingredients.length > 0) {
+              // Si es producto simple con receta, descontar insumos
+              product.ingredients.forEach(ing => {
                   const invItemIndex = newInventory.findIndex(i => i.id === ing.inventoryItemId && i.branchId === currentBranchId);
                   if (invItemIndex !== -1) {
-                      const amountToDeduct = ing.quantity * cartItem.quantity;
+                      const amountToDeduct = ing.quantity * quantity;
                       newInventory[invItemIndex].stock -= amountToDeduct;
                       
                       if (newInventory[invItemIndex].stock <= newInventory[invItemIndex].minStock) {
@@ -405,6 +437,10 @@ const App: React.FC = () => {
                   }
               });
           }
+      };
+
+      items.forEach(cartItem => {
+          processProductDeduction(cartItem.product, cartItem.quantity);
       });
 
       setInventory(newInventory);
@@ -416,16 +452,28 @@ const App: React.FC = () => {
 
   const restoreInventory = (items: CartItem[]) => {
       const newInventory = [...inventory];
-      items.forEach(cartItem => {
-          if (cartItem.product.ingredients && cartItem.product.ingredients.length > 0) {
-              cartItem.product.ingredients.forEach(ing => {
+
+      const processProductRestoration = (product: Product, quantity: number) => {
+          if (product.isCombo && product.comboItems) {
+              product.comboItems.forEach(comboItem => {
+                  const subProduct = products.find(p => p.id === comboItem.productId);
+                  if (subProduct) {
+                      processProductRestoration(subProduct, quantity * comboItem.quantity);
+                  }
+              });
+          } else if (product.ingredients && product.ingredients.length > 0) {
+              product.ingredients.forEach(ing => {
                   const invItemIndex = newInventory.findIndex(i => i.id === ing.inventoryItemId && i.branchId === currentBranchId);
                   if (invItemIndex !== -1) {
-                      const amountToRestore = ing.quantity * cartItem.quantity;
+                      const amountToRestore = ing.quantity * quantity;
                       newInventory[invItemIndex].stock += amountToRestore;
                   }
               });
           }
+      };
+
+      items.forEach(cartItem => {
+          processProductRestoration(cartItem.product, cartItem.quantity);
       });
       setInventory(newInventory);
   };
@@ -619,7 +667,7 @@ const App: React.FC = () => {
       case 'kds':
         return <KDSView orders={branchOrders} onUpdateOrderStatus={handleUpdateOrderStatus} onUpdateOrderItems={handleUpdateOrderItems} />;
       case 'inventory':
-        return <InventoryView products={products} inventory={branchInventory} suppliers={suppliers} onAddProduct={handleAddProduct} onUpdateProduct={handleUpdateProduct} onUpdateInventory={handleUpdateInventory} onAddSupplier={handleAddSupplier} onUpdateSupplier={handleUpdateSupplier} />;
+        return <InventoryView products={products} inventory={branchInventory} suppliers={suppliers} categories={categories} onAddProduct={handleAddProduct} onUpdateProduct={handleUpdateProduct} onAddInventory={handleAddInventory} onUpdateInventory={handleUpdateInventory} onAddSupplier={handleAddSupplier} onUpdateSupplier={handleUpdateSupplier} />;
       case 'customers':
         return <CustomersView customers={customers} onAddCustomer={handleAddCustomer} onUpdateCustomer={handleUpdateCustomer} />;
       case 'expenses':
@@ -631,7 +679,7 @@ const App: React.FC = () => {
       case 'qr-menu':
         return <QrMenuView products={products} currentBranch={branches.find(b => b.id === currentBranchId)} />;
       case 'settings':
-        return <SettingsView loyaltyConfig={loyaltyConfig} onUpdateLoyalty={setLoyaltyConfig} users={users} onAddUser={handleAddUser} onUpdateUser={handleUpdateUser} registers={registers} onAddRegister={handleAddRegister} onUpdateRegister={handleUpdateRegister} onDeleteRegister={handleDeleteRegister} taxRate={taxRate} onUpdateTax={setTaxRate} branches={branches} currentBranchId={currentBranchId} onAddBranch={handleAddBranch} onUpdateBranch={handleUpdateBranch} onChangeBranch={handleChangeBranch} userRole={user!.role} />;
+        return <SettingsView loyaltyConfig={loyaltyConfig} onUpdateLoyalty={setLoyaltyConfig} users={users} onAddUser={handleAddUser} onUpdateUser={handleUpdateUser} registers={registers} onAddRegister={handleAddRegister} onUpdateRegister={handleUpdateRegister} onDeleteRegister={handleDeleteRegister} taxRate={taxRate} onUpdateTax={setTaxRate} branches={branches} currentBranchId={currentBranchId} onAddBranch={handleAddBranch} onUpdateBranch={handleUpdateBranch} onChangeBranch={handleChangeBranch} userRole={user!.role} categories={categories} onAddCategory={handleAddCategory} onUpdateCategory={handleUpdateCategory} onDeleteCategory={handleDeleteCategory} />;
       default:
         return <div>En Construcción</div>;
     }

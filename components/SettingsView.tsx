@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Save, Percent, CheckCircle, Users, Monitor, Store, Gift, Plus, Trash2, Edit2, Shield, User, X, Briefcase, Upload, Image as ImageIcon, MapPin, Phone, Lock, Unlock, Ban, Wallet, Archive, RotateCcw, AlertTriangle, Key } from 'lucide-react';
-import { LoyaltyConfig, User as UserType, Role, CashRegister, Branch } from '../types';
+import { Save, Percent, CheckCircle, Users, Monitor, Store, Gift, Plus, Trash2, Edit2, Shield, User, X, Briefcase, Upload, Image as ImageIcon, MapPin, Phone, Lock, Unlock, Ban, Wallet, Archive, RotateCcw, AlertTriangle, Key, Grid3X3, Tag } from 'lucide-react';
+import { LoyaltyConfig, User as UserType, Role, CashRegister, Branch, Category } from '../types';
 import { useNotification } from './NotificationContext';
 
 interface SettingsViewProps {
@@ -21,6 +21,10 @@ interface SettingsViewProps {
   onUpdateBranch: (branch: Branch) => void;
   onChangeBranch: (id: string) => void;
   userRole: Role;
+  categories: Category[];
+  onAddCategory: (category: Category) => void;
+  onUpdateCategory: (category: Category) => void;
+  onDeleteCategory: (id: string) => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
@@ -29,10 +33,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   registers, onAddRegister, onUpdateRegister, onDeleteRegister,
   taxRate, onUpdateTax,
   branches, currentBranchId, onAddBranch, onUpdateBranch, onChangeBranch,
-  userRole
+  userRole,
+  categories, onAddCategory, onUpdateCategory, onDeleteCategory
 }) => {
   const { notify, confirm } = useNotification();
-  const [activeTab, setActiveTab] = useState<'loyalty' | 'team' | 'registers' | 'tax' | 'branches'>('branches');
+  const [activeTab, setActiveTab] = useState<'loyalty' | 'team' | 'registers' | 'tax' | 'branches' | 'catalog'>('branches');
 
   // --- TEAM STATE ---
   const [showUserTrash, setShowUserTrash] = useState(false);
@@ -42,6 +47,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   // --- REGISTER STATE ---
   const [showRegisterTrash, setShowRegisterTrash] = useState(false);
+  
+  // --- CATALOG STATE ---
+  const [showCategoryTrash, setShowCategoryTrash] = useState(false);
 
   // --- TAX STATE ---
   const [tempTaxRate, setTempTaxRate] = useState(taxRate * 100);
@@ -65,6 +73,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [editingRegister, setEditingRegister] = useState<CashRegister | null>(null);
   const [registerNameForm, setRegisterNameForm] = useState('');
+
+  // --- CATEGORY MODAL STATE ---
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [categoryNameForm, setCategoryNameForm] = useState('');
 
   // --- BRANCH MODAL STATE ---
   const [isBranchModalOpen, setIsBranchModalOpen] = useState(false);
@@ -207,12 +220,59 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               confirmText: 'Desactivar'
           });
           if (confirmed) {
-              onDeleteRegister(register.id); // In App.tsx this now handles soft delete
+              onDeleteRegister(register.id); 
           }
       } else {
            // Restore
            onUpdateRegister({ ...register, isActive: true });
            notify('Caja restaurada.', 'success');
+      }
+  };
+
+  // Category Handlers
+  const openCategoryModal = (cat?: Category) => {
+      if (cat) {
+          setEditingCategory(cat);
+          setCategoryNameForm(cat.name);
+      } else {
+          setEditingCategory(null);
+          setCategoryNameForm('');
+      }
+      setIsCategoryModalOpen(true);
+  };
+
+  const handleSaveCategory = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (editingCategory) {
+          onUpdateCategory({ ...editingCategory, name: categoryNameForm });
+          notify('Categoría actualizada.', 'success');
+      } else {
+           const newCat: Category = {
+              id: `cat-${Date.now()}`,
+              name: categoryNameForm,
+              isActive: true
+          };
+          onAddCategory(newCat);
+          notify('Categoría creada.', 'success');
+      }
+      setIsCategoryModalOpen(false);
+  };
+
+  const toggleCategoryStatus = async (cat: Category) => {
+      if (cat.isActive) {
+           const confirmed = await confirm({
+              title: 'Desactivar Categoría',
+              message: `¿Estás seguro de desactivar la categoría "${cat.name}"? Se moverá a la papelera.`,
+              type: 'warning',
+              confirmText: 'Desactivar'
+          });
+          if (confirmed) {
+              onDeleteCategory(cat.id); 
+          }
+      } else {
+           // Restore
+           onUpdateCategory({ ...cat, isActive: true });
+           notify('Categoría restaurada.', 'success');
       }
   };
 
@@ -297,6 +357,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       { id: 'branches', label: 'Sucursales', icon: <Store size={18}/> },
       { id: 'tax', label: 'Impuestos', icon: <Percent size={18}/> },
       { id: 'registers', label: 'Cajas', icon: <Wallet size={18}/> },
+      { id: 'catalog', label: 'Catálogo', icon: <Grid3X3 size={18}/> },
       { id: 'team', label: 'Equipo', icon: <Users size={18}/> },
       { id: 'loyalty', label: 'Fidelización', icon: <Gift size={18}/> },
   ];
@@ -460,28 +521,61 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
       {/* TAX TAB */}
       {activeTab === 'tax' && (
-           <div className="bg-white p-8 md:p-10 rounded-2xl shadow-md border border-slate-100 max-w-5xl animate-in fade-in slide-in-from-bottom-4 relative overflow-hidden">
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start relative z-10">
-                   <div className="md:col-span-1">
-                       <h3 className="text-xl font-bold text-slate-800 mb-3">Configuración Fiscal</h3>
-                       <p className="text-slate-500 text-sm leading-relaxed mb-6">
-                           Define el porcentaje de impuesto global (IVA, VAT, Impoconsumo) aplicable a las ventas.
-                       </p>
-                   </div>
-                   <div className="md:col-span-2 bg-slate-50 p-6 md:p-8 rounded-2xl border border-slate-200">
-                      <label className="block text-sm font-bold text-slate-700 mb-3">Impuesto Global (%)</label>
-                      <div className="flex items-center relative mb-6">
-                         <input type="number" min="0" max="100" value={tempTaxRate} onChange={(e) => setTempTaxRate(Number(e.target.value))} className="w-full border border-slate-300 rounded-2xl p-5 pr-12 text-4xl font-bold font-mono text-slate-800 focus:ring-4 focus:ring-brand-100 focus:border-brand-500 outline-none transition-all bg-white shadow-sm" placeholder="0" />
-                         <Percent className="absolute right-6 text-slate-400" size={32} />
+        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 animate-in fade-in slide-in-from-bottom-4">
+             <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center">
+                 <Percent className="text-brand-600 mr-2"/> Configuración Fiscal
+             </h3>
+      
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                 <div className="space-y-4">
+                     <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
+                         <div>
+                             <span className="font-bold text-slate-800 block">Habilitar Impuestos</span>
+                             <span className="text-xs text-slate-500">Aplicar cálculo automático en ventas</span>
+                         </div>
+                         <label className="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" className="sr-only peer" checked={tempTaxRate > 0} readOnly />
+                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
+                        </label>
+                     </div>
+      
+                     <div>
+                         <label className="block text-sm font-bold text-slate-700 mb-2">Tasa de Impuesto Global (%)</label>
+                         <div className="relative">
+                             <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                className="w-full border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-brand-500"
+                                value={tempTaxRate}
+                                onChange={(e) => setTempTaxRate(Number(e.target.value))}
+                             />
+                             <Percent className="absolute right-3 top-3.5 text-slate-400" size={18}/>
+                         </div>
+                         <p className="text-xs text-slate-400 mt-1">Ej: 16 para IVA, 8 para Impoconsumo, etc.</p>
+                     </div>
+                 </div>
+      
+                 <div className="space-y-4">
+                      <div className="bg-brand-50 p-6 rounded-xl border border-brand-100 h-full flex flex-col justify-center">
+                          <h4 className="font-bold text-brand-800 mb-2 flex items-center"><Shield size={16} className="mr-2"/> Información</h4>
+                          <p className="text-sm text-brand-700 mb-4 leading-relaxed">
+                              El porcentaje configurado se aplicará automáticamente sobre el precio base de los productos para calcular el total de la venta.
+                          </p>
+                          <div className="bg-white p-3 rounded-lg border border-brand-100 text-xs font-mono text-slate-600 shadow-sm">
+                              <strong>Cálculo:</strong><br/>
+                              Total = Subtotal + (Subtotal * {tempTaxRate}%)
+                          </div>
                       </div>
-                      <div className="flex justify-end">
-                        <button onClick={handleSaveTax} className="w-full md:w-auto bg-brand-600 text-white px-8 py-4 rounded-xl font-bold shadow-lg hover:bg-brand-700 transition-all active:scale-95 flex items-center justify-center text-lg">
-                            <Save size={20} className="mr-2" /> Guardar Configuración
-                        </button>
-                      </div>
-                   </div>
-               </div>
-           </div>
+                 </div>
+             </div>
+      
+             <div className="mt-8 pt-6 border-t border-slate-100 flex justify-end">
+                <button onClick={handleSaveTax} className="bg-brand-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-brand-700 transition-all active:scale-95 flex items-center">
+                    <Save size={18} className="mr-2"/> Guardar Cambios
+                </button>
+             </div>
+        </div>
       )}
       
       {/* TEAM TAB */}
@@ -551,7 +645,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       )}
 
-      {/* REGISTERS TAB (Updated to match Team Layout) */}
+      {/* REGISTERS TAB */}
       {activeTab === 'registers' && (
           <div className="animate-in fade-in slide-in-from-bottom-4">
                <div className="flex justify-between items-center mb-6">
@@ -639,6 +733,94 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       <div className="col-span-full py-12 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
                           <Wallet size={32} className="mx-auto mb-2 opacity-50"/>
                           <p>{showRegisterTrash ? 'La papelera está vacía.' : 'No hay cajas activas en esta sucursal.'}</p>
+                      </div>
+                  )}
+               </div>
+          </div>
+      )}
+
+      {/* CATALOG TAB (NEW) */}
+      {activeTab === 'catalog' && (
+          <div className="animate-in fade-in slide-in-from-bottom-4">
+               <div className="flex justify-between items-center mb-6">
+                    <div>
+                        <h3 className="text-lg font-bold text-slate-800">
+                            {showCategoryTrash ? 'Papelera de Categorías' : 'Catálogo de Categorías'}
+                        </h3>
+                        <p className="text-sm text-slate-500">
+                            {showCategoryTrash ? 'Restaura categorías eliminadas' : 'Gestiona las categorías de tus productos'}
+                        </p>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                         <button 
+                            onClick={() => setShowCategoryTrash(!showCategoryTrash)}
+                            className={`px-4 py-2 rounded-lg font-bold flex items-center border transition-all ${
+                                showCategoryTrash 
+                                ? 'bg-red-50 text-red-600 border-red-200' 
+                                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                            }`}
+                        >
+                            {showCategoryTrash ? <Tag size={18} className="mr-2"/> : <Archive size={18} className="mr-2"/>}
+                            {showCategoryTrash ? 'Ver Activas' : 'Papelera'}
+                        </button>
+                        {!showCategoryTrash && (
+                            <button onClick={() => openCategoryModal()} className="bg-brand-600 text-white px-4 py-2 rounded-lg font-bold flex items-center shadow hover:bg-brand-700 transition-all active:scale-95">
+                                <Plus size={18} className="mr-2"/> Nueva Categoría
+                            </button>
+                        )}
+                    </div>
+               </div>
+                
+               {showCategoryTrash && (
+                  <div className="bg-red-50 p-3 text-red-700 text-sm font-medium flex items-center justify-center border-b border-red-100 rounded-lg mb-6">
+                      <Archive size={16} className="mr-2" /> Categorías desactivadas.
+                  </div>
+               )}
+
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {categories.filter(c => (showCategoryTrash ? !c.isActive : c.isActive)).map(cat => (
+                      <div key={cat.id} className={`bg-white p-5 rounded-2xl shadow-sm border transition-all relative overflow-hidden group ${cat.isActive ? 'border-slate-100 hover:border-brand-200' : 'border-red-100 opacity-75'}`}>
+                          <div className="flex justify-between items-start mb-4 relative z-10">
+                              <div className="flex items-center gap-3">
+                                  <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg bg-brand-50 text-brand-600`}>
+                                      <Tag size={20}/>
+                                  </div>
+                                  <div>
+                                      <div className="font-bold text-slate-800">{cat.name}</div>
+                                      <div className="text-xs font-bold px-2 py-0.5 rounded-full inline-block mt-1 bg-slate-100 text-slate-500">
+                                          CATÁLOGO
+                                      </div>
+                                  </div>
+                              </div>
+                              <div className="flex gap-1">
+                                  {!showCategoryTrash && (
+                                     <button onClick={() => openCategoryModal(cat)} className="p-2 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"><Edit2 size={16}/></button>
+                                  )}
+                                  <button 
+                                    onClick={() => toggleCategoryStatus(cat)} 
+                                    className={`p-2 rounded-lg transition-colors ${cat.isActive ? 'text-slate-400 hover:text-red-600 hover:bg-red-50' : 'text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50'}`}
+                                  >
+                                      {cat.isActive ? <Trash2 size={16}/> : <RotateCcw size={16}/>}
+                                  </button>
+                              </div>
+                          </div>
+
+                          <div className="text-sm text-slate-600 space-y-1 relative z-10 mt-2">
+                              <p className="flex items-center text-xs text-slate-400">
+                                <Tag size={14} className="mr-2 text-slate-400"/>
+                                ID: {cat.id.slice(0, 8)}...
+                              </p>
+                          </div>
+
+                          {/* Decorative blob */}
+                          <div className={`absolute -right-6 -bottom-6 w-24 h-24 rounded-full opacity-10 pointer-events-none ${cat.isActive ? 'bg-brand-500' : 'bg-red-500'}`}></div>
+                      </div>
+                  ))}
+                  {categories.filter(c => (showCategoryTrash ? !c.isActive : c.isActive)).length === 0 && (
+                      <div className="col-span-full py-12 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
+                          <Tag size={32} className="mx-auto mb-2 opacity-50"/>
+                          <p>{showCategoryTrash ? 'La papelera está vacía.' : 'No hay categorías creadas.'}</p>
                       </div>
                   )}
                </div>
@@ -763,6 +945,25 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       <div>
                           <label className="block text-sm font-bold text-slate-700 mb-1">Nombre Identificador</label>
                           <input required type="text" className="w-full border rounded-lg p-3" value={registerNameForm} onChange={e => setRegisterNameForm(e.target.value)} placeholder="Ej. Caja Principal" />
+                      </div>
+                      <button type="submit" className="w-full bg-brand-600 text-white font-bold py-3 rounded-lg mt-4 hover:bg-brand-700">Guardar</button>
+                  </form>
+              </div>
+          </div>
+      )}
+      
+      {/* Category Modal */}
+      {isCategoryModalOpen && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+              <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 animate-in zoom-in duration-200">
+                  <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-xl font-bold text-slate-800">{editingCategory ? 'Editar Categoría' : 'Nueva Categoría'}</h3>
+                      <button onClick={() => setIsCategoryModalOpen(false)}><X className="text-slate-400 hover:text-slate-600" /></button>
+                  </div>
+                  <form onSubmit={handleSaveCategory} className="space-y-4">
+                      <div>
+                          <label className="block text-sm font-bold text-slate-700 mb-1">Nombre de la Categoría</label>
+                          <input required type="text" className="w-full border rounded-lg p-3" value={categoryNameForm} onChange={e => setCategoryNameForm(e.target.value)} placeholder="Ej. Bebidas" />
                       </div>
                       <button type="submit" className="w-full bg-brand-600 text-white font-bold py-3 rounded-lg mt-4 hover:bg-brand-700">Guardar</button>
                   </form>

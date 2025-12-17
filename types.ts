@@ -61,6 +61,12 @@ export enum ExpenseCategory {
 
 // Entities
 
+export interface Category {
+  id: string;
+  name: string;
+  isActive: boolean;
+}
+
 export interface LoyaltyConfig {
   enabled: boolean;
   pointsPerCurrency: number; // Cuantos puntos gana por cada $1
@@ -136,6 +142,11 @@ export interface RecipeItem {
   quantity: number; // Cantidad requerida
 }
 
+export interface ComboItem {
+  productId: string; // ID del otro producto
+  quantity: number;
+}
+
 export interface Product {
   id: string;
   companyId: string;
@@ -147,7 +158,9 @@ export interface Product {
   imageUrl?: string;
   isActive: boolean;
   productionArea: ProductionArea; // Nueva clasificación
-  ingredients: RecipeItem[]; // Receta
+  ingredients: RecipeItem[]; // Receta (si es producto simple)
+  isCombo?: boolean; // Nuevo: Bandera para identificar combos
+  comboItems?: ComboItem[]; // Nuevo: Lista de productos que forman el combo
   variants?: ProductVariant[];
 }
 
@@ -183,6 +196,7 @@ export interface InventoryItem {
   cost: number; // Costo promedio o del proveedor preferido
   productId?: string; // Opcional: si el insumo es un producto vendible directo
   suppliers?: ItemSupplierInfo[]; // Lista de proveedores que venden este item
+  isActive: boolean; // Added for logical deletion
 }
 
 export interface Customer {

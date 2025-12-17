@@ -28,9 +28,12 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ customers, onAddCu
       if (showTrash && c.isActive) return false;
       if (!showTrash && !c.isActive) return false;
 
-      // Then filter by search
-      return c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-             c.phone.includes(searchTerm);
+      // Then filter by search properties
+      const searchLower = searchTerm.toLowerCase();
+      return c.name.toLowerCase().includes(searchLower) || 
+             c.phone.includes(searchTerm) ||
+             (c.email && c.email.toLowerCase().includes(searchLower)) ||
+             (c.address && c.address.toLowerCase().includes(searchLower));
   });
 
   const handleOpenModal = (customer?: Customer) => {
@@ -91,7 +94,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ customers, onAddCu
           if (customer.isActive) {
               const confirmed = await confirm({
                   title: 'Desactivar Cliente',
-                  message: `¿Estás seguro de mover a "${customer.name}" a la papelera? No podrá ser seleccionado en ventas.`,
+                  message: `¿Mover "${customer.name}" a la papelera? Dejará de estar disponible para ventas.`,
                   type: 'warning',
                   confirmText: 'Mover a Papelera'
               });
@@ -151,7 +154,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ customers, onAddCu
           <Search className="absolute left-3 top-3 text-slate-400" size={20} />
           <input 
             type="text" 
-            placeholder="Buscar por nombre o teléfono..." 
+            placeholder="Buscar por nombre, teléfono, email o dirección..." 
             className="w-full pl-10 pr-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 shadow-sm"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}

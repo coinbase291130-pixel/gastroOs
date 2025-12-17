@@ -1,4 +1,4 @@
-import { Branch, Company, Product, Role, User, InventoryItem, Customer, ProductionArea, Table, TableStatus, CashRegister, Supplier, Expense, ExpenseCategory } from "./types";
+import { Branch, Company, Product, Role, User, InventoryItem, Customer, ProductionArea, Table, TableStatus, CashRegister, Supplier, Expense, ExpenseCategory, Category } from "./types";
 
 export const MOCK_COMPANY: Company = {
   id: 'c1',
@@ -33,6 +33,14 @@ export const MOCK_REGISTERS: CashRegister[] = [
   { id: 'reg2', branchId: 'b1', name: 'Caja Terraza', isOpen: false, isActive: true },
 ];
 
+export const MOCK_CATEGORIES: Category[] = [
+  { id: 'cat1', name: 'Plato Fuerte', isActive: true },
+  { id: 'cat2', name: 'Entradas', isActive: true },
+  { id: 'cat3', name: 'Bebidas', isActive: true },
+  { id: 'cat4', name: 'Postres', isActive: true },
+  { id: 'cat5', name: 'Combos', isActive: true },
+];
+
 export const MOCK_TABLES: Table[] = [
   { id: 't1', branchId: 'b1', name: 'Mesa 1', status: TableStatus.AVAILABLE, seats: 4 },
   { id: 't2', branchId: 'b1', name: 'Mesa 2', status: TableStatus.OCCUPIED, seats: 2, currentOrderId: 'ord_existing' },
@@ -63,32 +71,37 @@ export const MOCK_INVENTORY: InventoryItem[] = [
     suppliers: [
         { supplierId: 's1', cost: 8.50, isPreferred: true },
         { supplierId: 's2', cost: 9.00 }
-    ]
+    ],
+    isActive: true
   },
   { 
     id: 'inv2', branchId: 'b1', name: 'Pan Hamburguesa', unit: 'und', stock: 100, minStock: 20, maxStock: 200, cost: 0.50,
     suppliers: [
         { supplierId: 's3', cost: 0.50, isPreferred: true },
         { supplierId: 's2', cost: 0.60 }
-    ]
+    ],
+    isActive: true
   },
   { 
     id: 'inv3', branchId: 'b1', name: 'Queso Cheddar', unit: 'kg', stock: 20, minStock: 5, maxStock: 40, cost: 12.00,
     suppliers: [
         { supplierId: 's2', cost: 12.00, isPreferred: true }
-    ]
+    ],
+    isActive: true
   },
   { 
     id: 'inv4', branchId: 'b1', name: 'Tomate', unit: 'kg', stock: 4, minStock: 5, maxStock: 20, cost: 2.00, // Low Stock Example
     suppliers: [
         { supplierId: 's2', cost: 2.00, isPreferred: true }
-    ]
+    ],
+    isActive: true
   },
   { 
     id: 'inv5', branchId: 'b1', name: 'Lata Cola', unit: 'und', stock: 200, minStock: 24, maxStock: 500, productId: 'p4', cost: 0.80,
     suppliers: [
         { supplierId: 's2', cost: 0.80, isPreferred: true }
-    ]
+    ],
+    isActive: true
   }, 
 ];
 
@@ -123,6 +136,17 @@ export const MOCK_PRODUCTS: Product[] = [
     id: 'p5', companyId: 'c1', name: 'Cheesecake', price: 6.00, cost: 1.50, category: 'Postres', isActive: true, imageUrl: 'https://picsum.photos/200/200?random=5',
     productionArea: ProductionArea.KITCHEN,
     ingredients: []
+  },
+  // Combo Example
+  { 
+    id: 'p6', companyId: 'c1', name: 'Combo Hamburguesa', price: 13.50, cost: 5.30, category: 'Combos', isActive: true, imageUrl: 'https://picsum.photos/200/200?random=6',
+    productionArea: ProductionArea.KITCHEN,
+    ingredients: [],
+    isCombo: true,
+    comboItems: [
+        { productId: 'p1', quantity: 1 }, // 1 Hamburguesa
+        { productId: 'p4', quantity: 1 }  // 1 Cola
+    ]
   },
 ];
 
