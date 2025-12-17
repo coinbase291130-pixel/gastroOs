@@ -14,7 +14,7 @@ interface POSViewProps {
   tables: Table[];
   isRegisterOpen: boolean;
   activeRegisterName?: string;
-  orders: Order[]; // History of orders to calculate table bill
+  orders: Order[];
   taxRate: number;
   userRole: Role;
   loyaltyConfig: LoyaltyConfig;
@@ -27,7 +27,7 @@ export const POSView: React.FC<POSViewProps> = ({
     selectedTable, onSelectTable, tables, isRegisterOpen, activeRegisterName,
     orders, taxRate, userRole, loyaltyConfig, onAddCustomer, onChangeTable
 }) => {
-  const { notify } = useNotification();
+  const { notify, confirm } = useNotification();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Todos');
@@ -38,7 +38,7 @@ export const POSView: React.FC<POSViewProps> = ({
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
   const [isTableModalOpen, setIsTableModalOpen] = useState(false);
-  const [isChangeTableModalOpen, setIsChangeTableModalOpen] = useState(false); // Modal Cambio Mesa
+  const [isChangeTableModalOpen, setIsChangeTableModalOpen] = useState(false);
   
   // New Customer Modal State
   const [isNewCustomerModalOpen, setIsNewCustomerModalOpen] = useState(false);
@@ -60,27 +60,21 @@ export const POSView: React.FC<POSViewProps> = ({
   // Tab state for Drawer (Current Cart vs Table Account)
   const [activeTab, setActiveTab] = useState<'cart' | 'bill'>('cart');
 
-  // Filter Active Customers
   const activeCustomers = customers.filter(c => c.isActive);
 
-  // Update OrderType if selectedTable changes
   useEffect(() => {
     if (selectedTable) {
         setOrderType(OrderType.DINE_IN);
     }
   }, [selectedTable]);
 
-  // Check Birthday Logic
   useEffect(() => {
       if (selectedCustomer?.birthDate) {
           const d = new Date();
           const b = new Date(selectedCustomer.birthDate + 'T00:00:00');
           const isBday = d.getMonth() === b.getMonth() && d.getDate() === b.getDate();
           setIsBirthday(isBday);
-          
-          if (!isBday) {
-             setDiscountAmount(0); // Reset discount if changed user
-          }
+          if (!isBday) setDiscountAmount(0);
       } else {
           setIsBirthday(false);
           setDiscountAmount(0);
@@ -106,14 +100,11 @@ export const POSView: React.FC<POSViewProps> = ({
   };
 
   const handleChangeTableSelection = (targetTable: Table) => {
-      // Logic to move the current active order to target table
       if (!selectedTable || !selectedTable.currentOrderId) return;
-      
       onChangeTable(selectedTable.currentOrderId, targetTable.id);
       setIsChangeTableModalOpen(false);
   };
 
-  // Calculate Table Bill (Existing Sent Orders)
   const tableOrders = useMemo(() => {
     if (!selectedTable) return [];
     return orders.filter(o => 
@@ -125,20 +116,17 @@ export const POSView: React.FC<POSViewProps> = ({
 
   const tableBillTotal = tableOrders.reduce((sum, o) => sum + o.total, 0);
 
-  // Categories extraction
   const categories = useMemo(() => {
     const cats = new Set(products.map(p => p.category));
     return ['Todos', ...Array.from(cats)];
   }, [products]);
 
-  // Filter products
   const filteredProducts = products.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'Todos' || p.category === selectedCategory;
-    return matchesSearch && matchesCategory && p.isActive; // Only show Active products
+    return matchesSearch && matchesCategory && p.isActive;
   });
 
-  // Cart logic
   const addToCart = (product: Product) => {
     setCart(prev => {
       const existing = prev.find(item => item.product.id === product.id);
@@ -149,7 +137,6 @@ export const POSView: React.FC<POSViewProps> = ({
       }
       return [...prev, { cartId: Math.random().toString(36), product, quantity: 1, status: ItemStatus.PENDING }];
     });
-    // Auto switch to cart tab if adding items
     if (activeTab !== 'cart') setActiveTab('cart');
   };
 
@@ -167,7 +154,6 @@ export const POSView: React.FC<POSViewProps> = ({
     }));
   };
 
-  // Totals
   const currentCartSubtotal = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
   const currentCartTax = currentCartSubtotal * taxRate; 
   const currentCartTotal = currentCartSubtotal + currentCartTax;
@@ -177,7 +163,6 @@ export const POSView: React.FC<POSViewProps> = ({
   const totalWithTip = grandTotal + tipAmount;
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Apply Birthday Discount
   const applyBirthdayDiscount = () => {
       const discountPercentage = loyaltyConfig.birthdayDiscountPercentage || 50;
       const discountValue = rawGrandTotal * (discountPercentage / 100);
@@ -190,27 +175,28 @@ export const POSView: React.FC<POSViewProps> = ({
       notify('Descuento removido', 'info');
   };
 
-  const openPaymentModal = () => {
+  const openPaymentModal = async () => {
     if (orderType === OrderType.DINE_IN && !selectedTable) {
         setIsTableModalOpen(true);
         return;
     }
 
     if (cart.length > 0 && selectedTable) {
-         if(confirm("Tienes items en el carrito no enviados. ¿Deseas cobrarlos directamente junto con la cuenta?")) {
-             setIsPaymentModalOpen(true);
-             setPaymentMethod(null);
-             setCashTendered('');
-             setTipAmount(0);
-             setSplitType('NONE');
-         }
-    } else {
-        setIsPaymentModalOpen(true);
-        setPaymentMethod(null);
-        setCashTendered('');
-        setTipAmount(0);
-        setSplitType('NONE');
+         const shouldProceed = await confirm({
+             title: 'Items Pendientes',
+             message: 'Tienes productos en el carrito que no han sido enviados a cocina. ¿Deseas cobrarlos ahora?',
+             type: 'info',
+             confirmText: 'Sí, Cobrar Todo'
+         });
+         
+         if (!shouldProceed) return;
     }
+
+    setIsPaymentModalOpen(true);
+    setPaymentMethod(null);
+    setCashTendered('');
+    setTipAmount(0);
+    setSplitType('NONE');
   };
 
   const confirmPayment = () => {
@@ -218,7 +204,6 @@ export const POSView: React.FC<POSViewProps> = ({
 
       onProcessPayment(cart, grandTotal, orderType, paymentMethod, selectedCustomer);
       
-      // Cleanup Logic
       setCart([]);
       setIsPaymentModalOpen(false);
       setIsMobileCartOpen(false);
@@ -272,11 +257,9 @@ export const POSView: React.FC<POSViewProps> = ({
       )
   }
 
-  // Calculate Change (Only relevant for Cash)
   const tendered = parseFloat(cashTendered) || 0;
   const change = tendered - totalWithTip;
 
-  // Render Order Type buttons filtered by Role
   const renderOrderTypes = () => {
       const options = [
         { type: OrderType.DINE_IN, icon: <UtensilsCrossed size={16} />, label: 'Comer Aquí' },
@@ -300,6 +283,7 @@ export const POSView: React.FC<POSViewProps> = ({
 
   return (
     <div className="flex h-full bg-slate-50 relative overflow-hidden">
+      {/* ... (Rest of JSX remains similar, but updated logic for modals is above) ... */}
       {/* LEFT SIDE: Products */}
       <div className={`flex-1 flex flex-col p-2 md:p-6 h-full transition-all duration-300 ${isMobileCartOpen ? 'hidden md:flex' : 'flex'}`}>
         
@@ -354,7 +338,6 @@ export const POSView: React.FC<POSViewProps> = ({
                 </div>
             )}
             
-            {/* Active Register Badge */}
             {activeRegisterName && (
                 <div className="hidden md:flex items-center bg-slate-800 text-white px-4 py-2 rounded-xl shadow-lg shadow-slate-300 text-sm font-medium whitespace-nowrap">
                     <Monitor size={16} className="mr-2 text-emerald-400" />
@@ -392,7 +375,7 @@ export const POSView: React.FC<POSViewProps> = ({
           </div>
         </div>
 
-        {/* Product Grid - Responsive Columns */}
+        {/* Product Grid */}
         <div className="flex-1 overflow-y-auto pr-1">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-24 md:pb-4">
             {filteredProducts.map(product => (
@@ -419,7 +402,7 @@ export const POSView: React.FC<POSViewProps> = ({
         </div>
       </div>
 
-      {/* Mobile Floating Cart Summary Button */}
+      {/* Mobile Floating Cart Summary */}
       {!isMobileCartOpen && (cart.length > 0 || tableBillTotal > 0) && (
         <div className="md:hidden absolute bottom-4 left-4 right-4 z-30">
           <button 
@@ -439,7 +422,7 @@ export const POSView: React.FC<POSViewProps> = ({
         </div>
       )}
 
-      {/* RIGHT SIDE: Cart - Responsive Drawer */}
+      {/* RIGHT SIDE: Cart Drawer */}
       <div className={`
         fixed md:relative inset-0 md:inset-auto z-40 bg-white shadow-2xl flex flex-col h-full 
         md:w-[500px] md:translate-x-0 transition-transform duration-300 border-l border-slate-100
@@ -457,7 +440,6 @@ export const POSView: React.FC<POSViewProps> = ({
                 </button>
             </div>
 
-            {/* Tabs for Table Mode (Cart vs Bill) */}
             {selectedTable ? (
                 <div className="flex bg-slate-100 p-1 rounded-xl">
                     <button 
@@ -586,7 +568,6 @@ export const POSView: React.FC<POSViewProps> = ({
                                       }`}>
                                           {order.status}
                                       </span>
-                                      {/* Cancel Button */}
                                       <button 
                                         onClick={() => onCancelOrder(order)}
                                         className="text-slate-300 hover:text-red-500 p-1.5 hover:bg-red-50 rounded-lg transition-colors"
@@ -600,7 +581,6 @@ export const POSView: React.FC<POSViewProps> = ({
                                   {order.items.map((item, idx) => (
                                       <div key={idx} className="flex justify-between text-sm items-center group">
                                           <div className="flex items-center gap-2">
-                                              {/* Granular Status Icon */}
                                               {item.status === ItemStatus.READY ? (
                                                   <Check size={14} className="text-emerald-500" />
                                               ) : (
@@ -624,9 +604,7 @@ export const POSView: React.FC<POSViewProps> = ({
 
         {/* Totals Section */}
         <div className="p-5 bg-white border-t border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-20">
-            {/* Show totals differently based on context */}
             {selectedTable ? (
-                // Table Mode Totals
                 <div className="space-y-2 mb-4">
                     <div className="flex justify-between text-sm text-slate-500 font-medium">
                         <span>Cuenta Anterior</span>
@@ -644,7 +622,6 @@ export const POSView: React.FC<POSViewProps> = ({
                     </div>
                 </div>
             ) : (
-                // Takeaway Mode Totals
                 <div className="space-y-1 mb-4">
                      <div className="flex justify-between text-sm text-slate-500 font-medium">
                         <span>Subtotal</span>
@@ -661,7 +638,6 @@ export const POSView: React.FC<POSViewProps> = ({
                 </div>
             )}
 
-          {/* Birthday Discount Controls */}
           {isBirthday && discountAmount === 0 && (
               <button 
                 onClick={applyBirthdayDiscount}
@@ -682,7 +658,6 @@ export const POSView: React.FC<POSViewProps> = ({
           )}
 
           <div className="flex flex-col gap-3">
-              {/* Button to Send to Kitchen */}
               {cart.length > 0 && (
                   <button 
                     onClick={handleSendOrder}
@@ -693,7 +668,6 @@ export const POSView: React.FC<POSViewProps> = ({
                   </button>
               )}
               
-              {/* Payment Button */}
               <button 
                 disabled={grandTotal === 0 && discountAmount === 0}
                 onClick={openPaymentModal}
@@ -712,24 +686,23 @@ export const POSView: React.FC<POSViewProps> = ({
         </div>
       </div>
 
-      {/* Payment Modal */}
+      {/* Payment Modal and others remain same, just updated openPaymentModal logic */}
       {isPaymentModalOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
           <div className="bg-white rounded-3xl p-8 w-full max-w-xl shadow-2xl animate-in fade-in zoom-in duration-200">
+             {/* ... (Payment Modal Content - kept same) ... */}
             <h3 className="text-2xl font-bold mb-6 text-center text-slate-800">
                 {paymentMethod ? 'Confirmar Pago' : 'Selecciona Método de Pago'}
             </h3>
             
             {!paymentMethod ? (
                 <>
-                {/* Total Display */}
                 <div className="mb-8 text-center bg-slate-50 p-6 rounded-2xl border border-slate-100">
                     <p className="text-slate-500 font-medium mb-1 uppercase tracking-wide text-xs">Total a cobrar</p>
                     <p className="text-5xl font-extrabold text-slate-900 tracking-tight">${totalWithTip.toFixed(2)}</p>
                     {discountAmount > 0 && <p className="text-sm text-emerald-600 font-bold mt-2 bg-emerald-50 inline-block px-3 py-1 rounded-full">¡Descuento aplicado!</p>}
                 </div>
 
-                {/* Extras Buttons */}
                 <div className="flex gap-4 mb-8">
                     <button 
                         onClick={() => {
@@ -748,7 +721,6 @@ export const POSView: React.FC<POSViewProps> = ({
                     </button>
                 </div>
 
-                {/* Split Logic UI */}
                 {splitType === 'EQUAL' && (
                     <div className="bg-blue-50 p-5 rounded-2xl mb-8 border border-blue-100 animate-in slide-in-from-top-2">
                         <div className="flex items-center justify-between mb-3">
@@ -766,7 +738,6 @@ export const POSView: React.FC<POSViewProps> = ({
                     </div>
                 )}
 
-                {/* Main Payment Methods Grid */}
                 <div className="grid grid-cols-2 gap-4">
                     <button onClick={() => setPaymentMethod(PaymentMethod.CASH)} className="flex flex-col items-center justify-center p-6 border-2 border-slate-100 rounded-2xl hover:bg-emerald-50 hover:border-emerald-500 hover:text-emerald-700 transition-all active:scale-95 group">
                         <div className="bg-slate-100 p-3 rounded-full mb-3 group-hover:bg-white group-hover:shadow-md transition-all">
@@ -795,7 +766,6 @@ export const POSView: React.FC<POSViewProps> = ({
                 </div>
                 </>
             ) : paymentMethod === PaymentMethod.CASH ? (
-                /* CASH PAYMENT FLOW - WITH INPUT */
                 <div className="space-y-6">
                      <div className="text-center mb-4">
                         <p className="text-slate-500 font-medium uppercase text-xs tracking-wide">Total a Pagar</p>
@@ -841,7 +811,6 @@ export const POSView: React.FC<POSViewProps> = ({
                     </div>
                 </div>
             ) : (
-                /* CARD / QR PAYMENT FLOW */
                 <div className="space-y-8 text-center py-4">
                     <div>
                         <div className="bg-blue-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 text-blue-600 border-4 border-blue-100 animate-pulse">
@@ -881,7 +850,7 @@ export const POSView: React.FC<POSViewProps> = ({
         </div>
       )}
 
-      {/* Table Selection Modal (Quick Select from POS) */}
+      {/* ... (Other modals remain unchanged) ... */}
       {isTableModalOpen && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
               <div className="bg-white rounded-3xl w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-2xl p-8 animate-in fade-in zoom-in duration-200">
@@ -892,7 +861,6 @@ export const POSView: React.FC<POSViewProps> = ({
                       </div>
                       <button onClick={() => setIsTableModalOpen(false)} className="bg-slate-100 p-2 rounded-full hover:bg-slate-200 transition-colors"><X size={24} className="text-slate-600" /></button>
                   </div>
-                  
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {tables.map(table => {
                         const isOccupied = table.status === TableStatus.OCCUPIED;
@@ -922,8 +890,8 @@ export const POSView: React.FC<POSViewProps> = ({
           </div>
       )}
 
-      {/* Change Table Modal */}
-      {isChangeTableModalOpen && (
+      {/* ... Change Table Modal ... */}
+       {isChangeTableModalOpen && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
               <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl p-8 animate-in fade-in zoom-in duration-200">
                   <div className="flex justify-between items-center mb-6">
@@ -960,7 +928,7 @@ export const POSView: React.FC<POSViewProps> = ({
           </div>
       )}
 
-      {/* QUICK ADD CUSTOMER MODAL */}
+      {/* ... New Customer Modal ... */}
       {isNewCustomerModalOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
             <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl p-6 animate-in zoom-in duration-200">

@@ -13,12 +13,9 @@ import { OrdersHistoryView } from './components/OrdersHistoryView';
 import { ReportsView } from './components/ReportsView';
 import { ExpensesView } from './components/ExpensesView';
 import { QrMenuView } from './components/QrMenuView';
-import { PublicMenu } from './components/PublicMenu'; // Nueva importación
+import { PublicMenu } from './components/PublicMenu';
 import { Delete, Eraser, User as UserIcon, ChefHat, ChevronDown } from 'lucide-react';
 import { useNotification } from './components/NotificationContext';
-
-// Bell Sound Data URI (Short Beep)
-const BELL_SOUND = "data:audio/wav;base64,UklGRl9vT1BXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU"; // Placeholder for brevity, real app uses file
 
 // --- PIN LOGIN COMPONENT ---
 const Login: React.FC<{ onLogin: (user: User) => void; users: User[] }> = ({ onLogin, users }) => {
@@ -115,13 +112,12 @@ const Login: React.FC<{ onLogin: (user: User) => void; users: User[] }> = ({ onL
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [currentView, setCurrentView] = useState('dashboard');
-  const [isPublicMenu, setIsPublicMenu] = useState(false); // Estado para detectar modo menú público
+  const [isPublicMenu, setIsPublicMenu] = useState(false);
   const [publicMenuBranchId, setPublicMenuBranchId] = useState<string>('');
   
-  const { notify } = useNotification();
+  const { notify, confirm: confirmAction } = useNotification();
   
-  // App State (Simulating Backend)
-  // Global Data
+  // App State
   const [products, setProducts] = useState(MOCK_PRODUCTS);
   const [customers, setCustomers] = useState(MOCK_CUSTOMERS); 
   const [users, setUsers] = useState<User[]>(MOCK_USERS);
@@ -135,14 +131,10 @@ const App: React.FC = () => {
   const [expenses, setExpenses] = useState<Expense[]>(MOCK_EXPENSES);
   const [registers, setRegisters] = useState<CashRegister[]>(MOCK_REGISTERS);
   
-  // Session State
   const [activeSession, setActiveSession] = useState<RegisterSession | null>(null);
   const [taxRate, setTaxRate] = useState<number>(MOCK_COMPANY.taxRate);
-  
-  // Current Active Branch ID (Defaults to first one)
   const [currentBranchId, setCurrentBranchId] = useState<string>(MOCK_BRANCHES[0].id);
 
-  // Loyalty Settings State
   const [loyaltyConfig, setLoyaltyConfig] = useState<LoyaltyConfig>({
       enabled: true,
       pointsPerCurrency: 1, 
@@ -152,10 +144,8 @@ const App: React.FC = () => {
 
   const [selectedTable, setSelectedTable] = useState<Table | undefined>(undefined);
 
-  // --- ROUTING LOGIC FOR PUBLIC MENU ---
   useEffect(() => {
     const path = window.location.pathname;
-    // Check if path starts with /menu/
     if (path.startsWith('/menu/')) {
         const branchId = path.split('/')[2];
         setIsPublicMenu(true);
@@ -163,14 +153,12 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Derived filtered data based on currentBranchId
   const branchOrders = orders.filter(o => o.branchId === currentBranchId);
   const branchInventory = inventory.filter(i => i.branchId === currentBranchId);
   const branchTables = tables.filter(t => t.branchId === currentBranchId);
   const branchRegisters = registers.filter(r => r.branchId === currentBranchId);
   const branchExpenses = expenses.filter(e => e.branchId === currentBranchId);
   
-  // ... (All handlers remain the same as previous)
   const playNotificationSound = () => {
      try {
         const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
@@ -196,25 +184,13 @@ const App: React.FC = () => {
   const handleLogin = (loggedInUser: User) => {
     setUser(loggedInUser);
     notify(`Bienvenido, ${loggedInUser.name}`, 'success');
-    
-    if (loggedInUser.branchId) {
-        setCurrentBranchId(loggedInUser.branchId);
-    }
-
+    if (loggedInUser.branchId) setCurrentBranchId(loggedInUser.branchId);
     switch (loggedInUser.role) {
-        case Role.CASHIER:
-            setCurrentView('tables'); 
-            break;
+        case Role.CASHIER: setCurrentView('tables'); break;
         case Role.CHEF:
-        case Role.GRILL_MASTER:
-            setCurrentView('kds');
-            break;
-        case Role.WAITER:
-            setCurrentView('tables');
-            break;
-        default:
-            setCurrentView('dashboard');
-            break;
+        case Role.GRILL_MASTER: setCurrentView('kds'); break;
+        case Role.WAITER: setCurrentView('tables'); break;
+        default: setCurrentView('dashboard'); break;
     }
   };
 
@@ -259,12 +235,11 @@ const App: React.FC = () => {
         : r
       ));
       setActiveSession(newSession);
-      notify(`Caja abierta con éxito. Monto inicial: $${amount.toFixed(2)}`, 'success');
+      notify(`Caja abierta con éxito. Monto: $${amount.toFixed(2)}`, 'success');
   };
 
   const handleCloseRegister = (closingAmount: number) => {
       if (!activeSession) return;
-      
       const expectedAmount = activeSession.openingAmount + activeSession.totalSales;
       const difference = closingAmount - expectedAmount;
       
@@ -302,8 +277,14 @@ const App: React.FC = () => {
       notify('Caja actualizada exitosamente.', 'success');
   };
 
-  const handleDeleteRegister = (registerId: string) => {
-      if (confirm('¿Eliminar esta caja? Se perderá el historial de sesiones asociado si no se respalda.')) {
+  const handleDeleteRegister = async (registerId: string) => {
+      const confirmed = await confirmAction({
+          title: 'Eliminar Caja',
+          message: '¿Estás seguro de eliminar esta caja? Se perderá el historial de sesiones si no se respalda.',
+          type: 'danger',
+          confirmText: 'Eliminar'
+      });
+      if (confirmed) {
         setRegisters(prev => prev.filter(r => r.id !== registerId));
         notify('Caja eliminada.', 'info');
       }
@@ -343,7 +324,6 @@ const App: React.FC = () => {
       if (newTable) {
           setSelectedTable({ ...newTable, status: TableStatus.OCCUPIED, currentOrderId: orderId });
       }
-      
       notify('Mesa cambiada exitosamente.', 'success');
   };
 
@@ -387,8 +367,13 @@ const App: React.FC = () => {
       notify('Gasto actualizado.', 'success');
   };
 
-  const handleDeleteExpense = (id: string) => {
-      if (confirm('¿Mover este gasto a la papelera?')) {
+  const handleDeleteExpense = async (id: string) => {
+      const confirmed = await confirmAction({
+          title: 'Mover a Papelera',
+          message: '¿Estás seguro de mover este gasto a la papelera?',
+          type: 'warning'
+      });
+      if (confirmed) {
           setExpenses(prev => prev.map(e => e.id === id ? { ...e, isActive: false } : e));
           notify('Gasto movido a la papelera.', 'info');
       }
@@ -432,7 +417,7 @@ const App: React.FC = () => {
       setInventory(newInventory);
       if (lowStockAlerts.length > 0) {
           const uniqueAlerts = [...new Set(lowStockAlerts)];
-          notify(`⚠️ ALERTA STOCK BAJO: ${uniqueAlerts.join(', ')}`, 'warning');
+          notify(`⚠️ STOCK BAJO: ${uniqueAlerts.join(', ')}`, 'warning');
       }
   };
 
@@ -489,12 +474,10 @@ const App: React.FC = () => {
         ));
         setSelectedTable(prev => prev ? { ...prev, status: TableStatus.OCCUPIED, currentOrderId: newOrderId } : undefined);
     }
-
     notify('Pedido enviado a cocina.', 'success');
   };
 
   const handleProcessPayment = (items: CartItem[], total: number, type: OrderType, method: PaymentMethod, customer?: Customer) => {
-    
     if (items.length > 0) {
         const subtotal = total / (1 + taxRate);
         const tax = total - subtotal;
@@ -556,14 +539,19 @@ const App: React.FC = () => {
         ));
         setSelectedTable(undefined);
     }
-    
     notify(`Cobro exitoso: $${total.toFixed(2)} (${method})`, 'success');
   };
 
-  const handleCancelOrder = (order: Order) => {
-      if (confirm('¿Estás seguro de anular este pedido? Se notificará a cocina/barra y se restaurará el inventario.')) {
+  const handleCancelOrder = async (order: Order) => {
+      const confirmed = await confirmAction({
+          title: 'Anular Pedido',
+          message: '¿Estás seguro de anular este pedido? Se restaurará el inventario.',
+          type: 'warning',
+          confirmText: 'Sí, Anular'
+      });
+
+      if (confirmed) {
           restoreInventory(order.items);
-          
           setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: OrderStatus.CANCELLED } : o));
           
           if (order.tableId) {
@@ -575,8 +563,7 @@ const App: React.FC = () => {
                  }
              }
           }
-
-          notify('Pedido anulado.', 'warning');
+          notify('Pedido anulado correctamente.', 'info');
       }
   };
 
@@ -618,86 +605,28 @@ const App: React.FC = () => {
       }));
   };
 
-  // --- RENDER PUBLIC MENU IF ACTIVE ---
   if (isPublicMenu) {
       const branch = branches.find(b => b.id === publicMenuBranchId);
-      // Fallback a una rama por defecto si el ID no existe o es invalido en la demo
       const displayBranch = branch || branches[0];
-      
       return <PublicMenu products={products} branch={displayBranch} />;
   }
 
-  // --- AUTH GUARD ---
   if (!user) {
     return <Login onLogin={handleLogin} users={users} />;
   }
 
-  // View Routing Logic
   const renderView = () => {
     switch (currentView) {
       case 'dashboard':
-        return (
-            <Dashboard 
-                orders={branchOrders} 
-                activeSession={activeSession}
-                registers={branchRegisters}
-                onOpenRegister={handleOpenRegister}
-                onCloseRegister={handleCloseRegister}
-                currentUser={user!} 
-            />
-        );
+        return <Dashboard orders={branchOrders} activeSession={activeSession} registers={branchRegisters} onOpenRegister={handleOpenRegister} onCloseRegister={handleCloseRegister} currentUser={user!} />;
       case 'pos':
-        return (
-            <POSView 
-                products={products} 
-                onProcessPayment={handleProcessPayment}
-                onSendOrder={handleSendOrder} 
-                onCancelOrder={handleCancelOrder}
-                customers={customers}
-                selectedTable={selectedTable}
-                onSelectTable={handleSelectTable}
-                onChangeTable={handleChangeTable}
-                tables={branchTables}
-                isRegisterOpen={!!activeSession}
-                activeRegisterName={registers.find(r => r.id === activeSession?.registerId)?.name}
-                orders={branchOrders}
-                taxRate={taxRate}
-                userRole={user!.role}
-                loyaltyConfig={loyaltyConfig}
-                onAddCustomer={handleAddCustomer}
-            />
-        );
+        return <POSView products={products} onProcessPayment={handleProcessPayment} onSendOrder={handleSendOrder} onCancelOrder={handleCancelOrder} customers={customers} selectedTable={selectedTable} onSelectTable={handleSelectTable} onChangeTable={handleChangeTable} tables={branchTables} isRegisterOpen={!!activeSession} activeRegisterName={registers.find(r => r.id === activeSession?.registerId)?.name} orders={branchOrders} taxRate={taxRate} userRole={user!.role} loyaltyConfig={loyaltyConfig} onAddCustomer={handleAddCustomer} />;
       case 'tables':
-        return (
-            <TablesView 
-                tables={branchTables} 
-                onSelectTable={handleSelectTable} 
-                onAddTable={handleAddTable}
-                onUpdateTable={handleUpdateTable}
-                isRegisterOpen={!!activeSession}
-            />
-        );
+        return <TablesView tables={branchTables} onSelectTable={handleSelectTable} onAddTable={handleAddTable} onUpdateTable={handleUpdateTable} isRegisterOpen={!!activeSession} />;
       case 'kds':
-        return (
-            <KDSView 
-                orders={branchOrders}
-                onUpdateOrderStatus={handleUpdateOrderStatus}
-                onUpdateOrderItems={handleUpdateOrderItems}
-            />
-        );
+        return <KDSView orders={branchOrders} onUpdateOrderStatus={handleUpdateOrderStatus} onUpdateOrderItems={handleUpdateOrderItems} />;
       case 'inventory':
-        return (
-            <InventoryView 
-                products={products} 
-                inventory={branchInventory}
-                suppliers={suppliers}
-                onAddProduct={handleAddProduct} 
-                onUpdateProduct={handleUpdateProduct}
-                onUpdateInventory={handleUpdateInventory}
-                onAddSupplier={handleAddSupplier}
-                onUpdateSupplier={handleUpdateSupplier}
-            />
-        );
+        return <InventoryView products={products} inventory={branchInventory} suppliers={suppliers} onAddProduct={handleAddProduct} onUpdateProduct={handleUpdateProduct} onUpdateInventory={handleUpdateInventory} onAddSupplier={handleAddSupplier} onUpdateSupplier={handleUpdateSupplier} />;
       case 'customers':
         return <CustomersView customers={customers} onAddCustomer={handleAddCustomer} onUpdateCustomer={handleUpdateCustomer} />;
       case 'expenses':
@@ -709,27 +638,7 @@ const App: React.FC = () => {
       case 'qr-menu':
         return <QrMenuView products={products} currentBranch={branches.find(b => b.id === currentBranchId)} />;
       case 'settings':
-        return (
-            <SettingsView 
-                loyaltyConfig={loyaltyConfig} 
-                onUpdateLoyalty={setLoyaltyConfig}
-                users={users}
-                onAddUser={handleAddUser}
-                onUpdateUser={handleUpdateUser}
-                registers={registers}
-                onAddRegister={handleAddRegister}
-                onUpdateRegister={handleUpdateRegister}
-                onDeleteRegister={handleDeleteRegister}
-                taxRate={taxRate}
-                onUpdateTax={setTaxRate}
-                branches={branches}
-                currentBranchId={currentBranchId}
-                onAddBranch={handleAddBranch}
-                onUpdateBranch={handleUpdateBranch}
-                onChangeBranch={handleChangeBranch}
-                userRole={user!.role}
-            />
-        );
+        return <SettingsView loyaltyConfig={loyaltyConfig} onUpdateLoyalty={setLoyaltyConfig} users={users} onAddUser={handleAddUser} onUpdateUser={handleUpdateUser} registers={registers} onAddRegister={handleAddRegister} onUpdateRegister={handleUpdateRegister} onDeleteRegister={handleDeleteRegister} taxRate={taxRate} onUpdateTax={setTaxRate} branches={branches} currentBranchId={currentBranchId} onAddBranch={handleAddBranch} onUpdateBranch={handleUpdateBranch} onChangeBranch={handleChangeBranch} userRole={user!.role} />;
       default:
         return <div>En Construcción</div>;
     }
@@ -739,19 +648,10 @@ const App: React.FC = () => {
     <div className="flex h-screen bg-slate-100 font-sans overflow-hidden">
       <Sidebar 
         currentView={currentView} 
-        onChangeView={(view) => {
-            setCurrentView(view);
-            if (view !== 'pos') setSelectedTable(undefined);
-        }} 
-        onLogout={handleLogout} 
-        userRole={user.role}
-        branches={branches}
-        currentBranchId={currentBranchId}
-        onBranchChange={handleChangeBranch}
+        onChangeView={(view) => { setCurrentView(view); if (view !== 'pos') setSelectedTable(undefined); }} 
+        onLogout={handleLogout} userRole={user.role} branches={branches} currentBranchId={currentBranchId} onBranchChange={handleChangeBranch}
       />
-
       <main className="flex-1 flex flex-col h-full w-full overflow-hidden pb-16 md:pb-0 relative">
-        {/* MOBILE HEADER */}
         <div className="md:hidden bg-slate-900 text-white p-4 flex items-center justify-between shadow-md z-20 shrink-0 print:hidden">
              <div className="flex items-center gap-3">
                 <div className="bg-brand-600 p-2 rounded-lg">
@@ -774,7 +674,6 @@ const App: React.FC = () => {
                 </div>
              </div>
         </div>
-
         <div className="flex-1 overflow-hidden relative w-full">
             {((user.role === Role.CASHIER || user.role === Role.WAITER) && currentView === 'pos') ? (
                  <div className="h-full relative w-full">
@@ -789,9 +688,7 @@ const App: React.FC = () => {
                     )}
                    {renderView()}
                  </div>
-            ) : (
-              renderView()
-            )}
+            ) : renderView()}
         </div>
       </main>
     </div>
