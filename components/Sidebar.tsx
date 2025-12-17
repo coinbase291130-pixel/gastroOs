@@ -1,12 +1,12 @@
 import React from 'react';
 import { LayoutDashboard, ShoppingBag, Package, Users, Settings, LogOut, Store, Grid3X3, MonitorPlay, BarChart3, Receipt, ChefHat, ChevronDown, QrCode } from 'lucide-react';
-import { Branch } from '../types';
+import { Branch, Role } from '../types';
 
 interface SidebarProps {
   currentView: string;
   onChangeView: (view: string) => void;
   onLogout: () => void;
-  userRole: string;
+  userRole: Role;
   branches: Branch[];
   currentBranchId: string;
   onBranchChange: (branchId: string) => void;
@@ -16,29 +16,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
     currentView, onChangeView, onLogout, userRole,
     branches, currentBranchId, onBranchChange
 }) => {
-  const menuItems = [
-    { id: 'dashboard', label: 'Tablero', icon: <LayoutDashboard size={20} /> },
-    { id: 'reports', label: 'Reportes', icon: <BarChart3 size={20} /> },
-    { id: 'expenses', label: 'Gastos', icon: <Receipt size={20} /> },
-    { id: 'tables', label: 'Mesas', icon: <Grid3X3 size={20} /> },
-    { id: 'pos', label: 'TPV', icon: <Store size={20} /> },
-    { id: 'kds', label: 'Monitor KDS', icon: <MonitorPlay size={20} /> },
-    { id: 'orders', label: 'Historial', icon: <ShoppingBag size={20} /> },
-    { id: 'inventory', label: 'Productos', icon: <Package size={20} /> },
-    { id: 'customers', label: 'Clientes', icon: <Users size={20} /> },
-    { id: 'qr-menu', label: 'Menú Digital', icon: <QrCode size={20} /> },
-    { id: 'settings', label: 'Ajustes', icon: <Settings size={20} /> },
+  // Definición de ítems permitidos por rol
+  const allItems = [
+    { id: 'dashboard', label: 'Tablero', icon: <LayoutDashboard size={20} />, roles: [Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.BRANCH_ADMIN, Role.CASHIER] },
+    { id: 'reports', label: 'Reportes', icon: <BarChart3 size={20} />, roles: [Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.BRANCH_ADMIN] },
+    { id: 'expenses', label: 'Gastos', icon: <Receipt size={20} />, roles: [Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.BRANCH_ADMIN] },
+    { id: 'tables', label: 'Mesas', icon: <Grid3X3 size={20} />, roles: [Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.BRANCH_ADMIN, Role.CASHIER] },
+    { id: 'pos', label: 'TPV', icon: <Store size={20} />, roles: [Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.BRANCH_ADMIN, Role.CASHIER] },
+    { id: 'kds', label: 'Monitor KDS', icon: <MonitorPlay size={20} />, roles: [Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.BRANCH_ADMIN, Role.CHEF, Role.GRILL_MASTER, Role.WAITER, Role.CASHIER] },
+    { id: 'orders', label: 'Historial', icon: <ShoppingBag size={20} />, roles: [Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.BRANCH_ADMIN, Role.CASHIER] },
+    { id: 'inventory', label: 'Productos', icon: <Package size={20} />, roles: [Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.BRANCH_ADMIN] },
+    { id: 'customers', label: 'Clientes', icon: <Users size={20} />, roles: [Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.BRANCH_ADMIN, Role.CASHIER] },
+    { id: 'qr-menu', label: 'Menú Digital', icon: <QrCode size={20} />, roles: [Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.BRANCH_ADMIN] },
+    { id: 'settings', label: 'Ajustes', icon: <Settings size={20} />, roles: [Role.SUPER_ADMIN, Role.COMPANY_ADMIN] },
   ];
+
+  // Filtrar ítems según el rol del usuario
+  const menuItems = allItems.filter(item => item.roles.includes(userRole));
 
   const formatRole = (role: string) => {
     switch(role) {
       case 'COMPANY_ADMIN': return 'ADMINISTRADOR';
       case 'BRANCH_ADMIN': return 'GERENTE';
       case 'CASHIER': return 'CAJERO';
-      case 'CHEF': return 'CHEF EJECUTIVO';
+      case 'CHEF': return 'CHEF COCINA';
+      case 'GRILL_MASTER': return 'ASADOR MASTER';
+      case 'WAITER': return 'MESERO / ATENCIÓN';
       default: return role.replace('_', ' ');
     }
   };
+
+  const isOperationalRole = userRole === Role.CHEF || userRole === Role.GRILL_MASTER || userRole === Role.WAITER;
 
   return (
     <>
@@ -57,26 +65,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {formatRole(userRole)}
           </p>
 
-          {/* Controls Below Profile */}
-          <div className="mt-5 pt-5 border-t border-slate-800 space-y-3">
-              <div>
-                  <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1.5 block flex items-center gap-1">
-                      <Store size={10} /> Sucursal Operativa
-                  </label>
-                  <div className="relative">
-                    <select
-                        value={currentBranchId}
-                        onChange={(e) => onBranchChange(e.target.value)}
-                        className="w-full bg-slate-800 text-white text-xs font-medium border border-slate-700 rounded-lg py-2.5 pl-3 pr-8 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors cursor-pointer appearance-none"
-                    >
-                        {branches.map(b => (
-                            <option key={b.id} value={b.id}>{b.name}</option>
-                        ))}
-                    </select>
-                    <ChevronDown size={14} className="absolute right-2 top-2.5 text-slate-400 pointer-events-none" />
-                  </div>
-              </div>
-          </div>
+          {/* Selector de Sucursal solo para administradores */}
+          {!isOperationalRole && (
+            <div className="mt-5 pt-5 border-t border-slate-800 space-y-3">
+                <div>
+                    <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1.5 block flex items-center gap-1">
+                        <Store size={10} /> Sucursal
+                    </label>
+                    <div className="relative">
+                        <select
+                            value={currentBranchId}
+                            onChange={(e) => onBranchChange(e.target.value)}
+                            className="w-full bg-slate-800 text-white text-xs font-medium border border-slate-700 rounded-lg py-2.5 pl-3 pr-8 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors cursor-pointer appearance-none"
+                        >
+                            {branches.map(b => (
+                                <option key={b.id} value={b.id}>{b.name}</option>
+                            ))}
+                        </select>
+                        <ChevronDown size={14} className="absolute right-2 top-2.5 text-slate-400 pointer-events-none" />
+                    </div>
+                </div>
+            </div>
+          )}
         </div>
 
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto custom-scrollbar">

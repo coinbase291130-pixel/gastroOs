@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { InventoryItem, Product, ProductionArea, RecipeItem, Supplier, ItemSupplierInfo, ComboItem, Category } from '../types';
 import { Package, Plus, X, Save, ChefHat, Flame, Beer, Edit, Trash2, RefreshCw, Upload, Image as ImageIcon, ShoppingCart, TrendingDown, Truck, Tag, Users, Archive, RotateCcw, AlertTriangle, Phone, Mail, User, Layers, CheckCircle, Edit2, Search } from 'lucide-react';
@@ -652,16 +653,19 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             </div>
                             <div className="flex-1">
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
-                                <input required type="text" className="w-full border rounded-lg p-2" value={formName} onChange={e => setFormName(e.target.value)} />
+                                {/* Fixed event handler syntax by adding arrow function */}
+                                <input required type="text" className="w-full border rounded-lg p-2" value={formName} onChange={(e) => setFormName(e.target.value)} />
                             </div>
                          </div>
                          <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Precio ($)</label>
-                            <input required type="number" step="0.01" className="w-full border rounded-lg p-2" value={formPrice} onChange={e => setFormPrice(e.target.value)} />
+                            {/* Fixed event handler syntax by adding arrow function */}
+                            <input required type="number" step="0.01" className="w-full border rounded-lg p-2" value={formPrice} onChange={(e) => setFormPrice(e.target.value)} />
                          </div>
                          <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Categoría</label>
-                            <select required className="w-full border rounded-lg p-2 bg-white" value={formCategory} onChange={e => setFormCategory(e.target.value)}>
+                            {/* Fixed event handler syntax by adding arrow function */}
+                            <select required className="w-full border rounded-lg p-2 bg-white" value={formCategory} onChange={(e) => setFormCategory(e.target.value)}>
                                 <option value="">Seleccionar...</option>
                                 {categories.filter(c => c.isActive).map(c => (
                                     <option key={c.id} value={c.name}>{c.name}</option>
@@ -670,7 +674,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                          </div>
                          <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Área</label>
-                            <select className="w-full border rounded-lg p-2" value={formArea} onChange={e => setFormArea(e.target.value as any)}>
+                            {/* Fixed event handler syntax by adding arrow function */}
+                            <select className="w-full border rounded-lg p-2" value={formArea} onChange={(e) => setFormArea(e.target.value as any)}>
                                 <option value={ProductionArea.KITCHEN}>Cocina</option>
                                 <option value={ProductionArea.BAR}>Barra</option>
                                 <option value={ProductionArea.GRILL}>Asador</option>
@@ -680,7 +685,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
                      {/* COMBO TOGGLE */}
                      <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                         <input type="checkbox" id="isCombo" checked={formIsCombo} onChange={e => setFormIsCombo(e.target.checked)} className="w-5 h-5 text-brand-600 rounded" />
+                         {/* Fixed event handler syntax by adding arrow function */}
+                         <input type="checkbox" id="isCombo" checked={formIsCombo} onChange={(e) => setFormIsCombo(e.target.checked)} className="w-5 h-5 text-brand-600 rounded" />
                          <label htmlFor="isCombo" className="font-bold text-slate-700">Este producto es un Combo</label>
                      </div>
 
@@ -698,10 +704,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                              formComboItems.length === 0 ? <p className="text-sm text-slate-400 italic">No hay productos en este combo.</p> :
                              formComboItems.map((item, idx) => (
                                  <div key={idx} className="flex gap-2 items-center bg-brand-50 p-2 rounded-lg">
-                                     <select required className="flex-1 border rounded p-1 text-sm" value={item.productId} onChange={e => { updateComboItem(idx, 'productId', e.target.value) }}>
+                                     {/* Fixed event handler syntax by adding arrow function */}
+                                     <select required className="flex-1 border rounded p-1 text-sm" value={item.productId} onChange={(e) => updateComboItem(idx, 'productId', e.target.value)}>
                                          {products.filter(p => p.id !== editingProductId).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                                      </select>
-                                     <input type="number" min="1" className="w-20 border rounded p-1 text-sm text-center" value={item.quantity} onChange={e => updateComboItem(idx, 'quantity', parseInt(e.target.value))} />
+                                     {/* Fixed event handler syntax by adding arrow function */}
+                                     <input type="number" min="1" className="w-20 border rounded p-1 text-sm text-center" value={item.quantity} onChange={(e) => updateComboItem(idx, 'quantity', parseInt(e.target.value))} />
                                      <button type="button" onClick={() => removeComboItem(idx)} className="text-red-500 hover:bg-red-100 p-1 rounded"><Trash2 size={16}/></button>
                                  </div>
                              ))
@@ -712,10 +720,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                  const invItem = inventory.find(i => i.id === ing.inventoryItemId);
                                  return (
                                      <div key={idx} className="flex gap-2 items-center bg-slate-50 p-2 rounded-lg">
-                                         <select required className="flex-1 border rounded p-1 text-sm" value={ing.inventoryItemId} onChange={e => { updateIngredient(idx, 'inventoryItemId', e.target.value) }}>
+                                         {/* Fixed event handler syntax by adding arrow function */}
+                                         <select required className="flex-1 border rounded p-1 text-sm" value={ing.inventoryItemId} onChange={(e) => updateIngredient(idx, 'inventoryItemId', e.target.value)}>
                                              {inventory.map(i => <option key={i.id} value={i.id}>{i.name} ({i.unit})</option>)}
                                          </select>
-                                         <input type="number" step="0.01" className="w-20 border rounded p-1 text-sm text-center" value={ing.quantity} onChange={e => updateIngredient(idx, 'quantity', parseFloat(e.target.value))} />
+                                         {/* Fixed event handler syntax by adding arrow function */}
+                                         <input type="number" step="0.01" className="w-20 border rounded p-1 text-sm text-center" value={ing.quantity} onChange={(e) => updateIngredient(idx, 'quantity', parseFloat(e.target.value))} />
                                          <span className="text-xs text-slate-500 w-10">{invItem?.unit}</span>
                                          <button type="button" onClick={() => removeIngredient(idx)} className="text-red-500 hover:bg-red-100 p-1 rounded"><Trash2 size={16}/></button>
                                      </div>
@@ -742,25 +752,29 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 <div className="bg-white rounded-2xl w-full max-w-md shadow-xl p-6 animate-in zoom-in duration-200">
                   <div className="flex justify-between items-center mb-4">
                       <h3 className="text-xl font-bold text-slate-800">{editingSupplierId ? 'Editar Proveedor' : 'Nuevo Proveedor'}</h3>
-                      <button onClick={() => setIsSupplierModalOpen(false)}><X className="text-slate-400 hover:text-slate-600"/></button>
+                      <button onClick={() => setIsSupplierModalOpen(false)}><X className="text-slate-400 hover:text-slate-600" /></button>
                   </div>
                   <form onSubmit={handleSupplierSubmit} className="space-y-4">
                       <div>
                           <label className="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
-                          <input required type="text" className="w-full border rounded-lg p-2" value={supplierName} onChange={e => setSupplierName(e.target.value)} />
+                          {/* Fixed event handler syntax by adding arrow function */}
+                          <input required type="text" className="w-full border rounded-lg p-2" value={supplierName} onChange={(e) => setSupplierName(e.target.value)} />
                       </div>
                       <div>
                           <label className="block text-sm font-medium text-slate-700 mb-1">Contacto</label>
-                          <input required type="text" className="w-full border rounded-lg p-2" value={supplierContact} onChange={e => setSupplierContact(e.target.value)} />
+                          {/* Fixed event handler syntax by adding arrow function */}
+                          <input required type="text" className="w-full border rounded-lg p-2" value={supplierContact} onChange={(e) => setSupplierContact(e.target.value)} />
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                           <div>
                               <label className="block text-sm font-medium text-slate-700 mb-1">Teléfono</label>
-                              <input required type="tel" className="w-full border rounded-lg p-2" value={supplierPhone} onChange={e => setSupplierPhone(e.target.value)} />
+                              {/* Fixed event handler syntax by adding arrow function */}
+                              <input required type="tel" className="w-full border rounded-lg p-2" value={supplierPhone} onChange={(e) => setSupplierPhone(e.target.value)} />
                           </div>
                           <div>
                               <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-                              <input type="email" className="w-full border rounded-lg p-2" value={supplierEmail} onChange={e => setSupplierEmail(e.target.value)} />
+                              {/* Fixed event handler syntax by adding arrow function */}
+                              <input type="email" className="w-full border rounded-lg p-2" value={supplierEmail} onChange={(e) => setSupplierEmail(e.target.value)} />
                           </div>
                       </div>
                       <button type="submit" className="w-full bg-brand-600 text-white font-bold py-2 rounded-lg mt-4 hover:bg-brand-700">Guardar</button>
@@ -773,10 +787,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       {isInventoryItemModalOpen && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
               {/* ... */}
-               <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto animate-in zoom-in duration-200">
+               <div className="bg-white rounded-2xl w-full max-lg shadow-xl max-h-[90vh] overflow-y-auto animate-in zoom-in duration-200">
                   <div className="p-6 border-b flex justify-between items-center">
                       <h3 className="text-xl font-bold text-slate-800">{editingInventoryItem ? `Gestionar: ${editingInventoryItem.name}` : 'Nuevo Insumo'}</h3>
-                      <button onClick={() => setIsInventoryItemModalOpen(false)}><X className="text-slate-400 hover:text-slate-600"/></button>
+                      <button onClick={() => setIsInventoryItemModalOpen(false)}><X className="text-slate-400 hover:text-slate-600" /></button>
                   </div>
                   <form onSubmit={handleInventoryItemSubmit} className="p-6 space-y-6">
                        
@@ -784,20 +798,24 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                        <div className="grid grid-cols-2 gap-4">
                            <div className="col-span-2">
                                <label className="block text-sm font-medium text-slate-700 mb-1">Nombre del Insumo</label>
-                               <input required type="text" className="w-full border rounded-lg p-2" value={invName} onChange={e => setInvName(e.target.value)} />
+                               {/* Fixed event handler syntax by adding arrow function */}
+                               <input required type="text" className="w-full border rounded-lg p-2" value={invName} onChange={(e) => setInvName(e.target.value)} />
                            </div>
                            <div>
                                <label className="block text-sm font-medium text-slate-700 mb-1">Unidad de Medida</label>
-                               <input required type="text" className="w-full border rounded-lg p-2" value={invUnit} onChange={e => setInvUnit(e.target.value)} placeholder="kg, lt, und" />
+                               {/* Fixed event handler syntax by adding arrow function */}
+                               <input required type="text" className="w-full border rounded-lg p-2" value={invUnit} onChange={(e) => setInvUnit(e.target.value)} placeholder="kg, lt, und" />
                            </div>
                            <div>
                                <label className="block text-sm font-medium text-slate-700 mb-1">Costo Base ($)</label>
-                               <input required type="number" step="0.01" className="w-full border rounded-lg p-2" value={invCost} onChange={e => setInvCost(parseFloat(e.target.value))} />
+                               {/* Fixed event handler syntax by adding arrow function */}
+                               <input required type="number" step="0.01" className="w-full border rounded-lg p-2" value={invCost} onChange={(e) => setInvCost(parseFloat(e.target.value))} />
                            </div>
                            {!editingInventoryItem && (
                                <div className="col-span-2">
                                    <label className="block text-sm font-medium text-slate-700 mb-1">Stock Inicial</label>
-                                   <input required type="number" className="w-full border rounded-lg p-2" value={invStock} onChange={e => setInvStock(parseFloat(e.target.value))} />
+                                   {/* Fixed event handler syntax by adding arrow function */}
+                                   <input required type="number" className="w-full border rounded-lg p-2" value={invStock} onChange={(e) => setInvStock(parseFloat(e.target.value))} />
                                </div>
                            )}
                        </div>
@@ -805,11 +823,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                        <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl">
                           <div>
                               <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Stock Minimo</label>
-                              <input required type="number" className="w-full border rounded-lg p-2" value={invMinStock} onChange={e => setInvMinStock(parseInt(e.target.value))} />
+                              {/* Fixed event handler syntax by adding arrow function */}
+                              <input required type="number" className="w-full border rounded-lg p-2" value={invMinStock} onChange={(e) => setInvMinStock(parseInt(e.target.value))} />
                           </div>
                           <div>
                               <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Stock Maximo</label>
-                              <input required type="number" className="w-full border rounded-lg p-2" value={invMaxStock} onChange={e => setInvMaxStock(parseInt(e.target.value))} />
+                              {/* Fixed event handler syntax by adding arrow function */}
+                              <input required type="number" className="w-full border rounded-lg p-2" value={invMaxStock} onChange={(e) => setInvMaxStock(parseInt(e.target.value))} />
                           </div>
                        </div>
                        
@@ -820,12 +840,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                            </div>
                            {invSuppliers.map((s, idx) => (
                                <div key={idx} className="flex gap-2 items-center bg-slate-50 p-2 rounded border border-slate-100">
-                                   <select className="flex-1 border rounded p-1 text-sm bg-white" value={s.supplierId} onChange={e => updateItemSupplier(idx, 'supplierId', e.target.value)}>
+                                   {/* Fixed event handler syntax by adding arrow function */}
+                                   <select className="flex-1 border rounded p-1 text-sm bg-white" value={s.supplierId} onChange={(e) => updateItemSupplier(idx, 'supplierId', e.target.value)}>
                                        {suppliers.map(sup => <option key={sup.id} value={sup.id}>{sup.name}</option>)}
                                    </select>
                                    <div className="flex items-center">
                                        <span className="text-xs text-slate-400 mr-1">$</span>
-                                       <input type="number" step="0.01" className="w-20 border rounded p-1 text-sm" value={s.cost} onChange={e => updateItemSupplier(idx, 'cost', parseFloat(e.target.value))} placeholder="Costo" />
+                                       {/* Fixed event handler syntax by adding arrow function */}
+                                       <input type="number" step="0.01" className="w-20 border rounded p-1 text-sm" value={s.cost} onChange={(e) => updateItemSupplier(idx, 'cost', parseFloat(e.target.value))} placeholder="Costo" />
                                    </div>
                                    <div className="flex items-center" title="Proveedor Preferido">
                                        <input type="radio" name="preferred" checked={s.isPreferred} onChange={() => {
@@ -866,7 +888,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   </tr>
                               </thead>
                               <tbody className="divide-y divide-slate-100">
-                                  {Object.entries(purchaseOrders).map(([id, o]) => {
+                                  {/* Fix unknown property access by casting each val in the map */}
+                                  {Object.entries(purchaseOrders).map(([id, val]) => {
+                                      const o = val as { quantity: number, supplierId: string, cost: number };
                                       const item = inventory.find(i => i.id === id);
                                       if (!item) return null;
                                       return (
@@ -908,7 +932,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                      <div className="p-4 border-t bg-slate-50 rounded-b-2xl flex justify-between items-center">
                           <div className="text-sm text-slate-500">
                               Total Estimado: <span className="font-bold text-xl text-slate-800 ml-2">
-                                  ${Object.values(purchaseOrders).reduce((sum, o) => sum + (o.quantity * o.cost), 0).toFixed(2)}
+                                  {/* Fix unknown property access in reduce by specifying sum as number */}
+                                  ${Object.values(purchaseOrders).reduce((sum: number, o: any) => sum + (o.quantity * o.cost), 0).toFixed(2)}
                               </span>
                           </div>
                           <div className="flex gap-3">

@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
-import { Order, OrderStatus, ProductionArea, OrderType, ItemStatus, CartItem } from '../types';
-import { Clock, CheckCircle, ChefHat, Beer, Flame, Filter, Monitor, Check } from 'lucide-react';
+import { Order, OrderStatus, ProductionArea, OrderType, ItemStatus } from '../types';
+import { Clock, CheckCircle, ChefHat, Beer, Flame, Filter, Monitor, Check, ChevronRight } from 'lucide-react';
 
 interface KDSViewProps {
   orders: Order[];
@@ -12,7 +13,6 @@ export const KDSView: React.FC<KDSViewProps> = ({ orders, onUpdateOrderStatus, o
   const [filterArea, setFilterArea] = useState<ProductionArea | 'ALL'>('ALL');
   const [stationMode, setStationMode] = useState<boolean>(false);
 
-  // Filtrar solo pedidos activos (Pendientes o Preparando)
   const activeOrders = orders.filter(o => 
     o.status === OrderStatus.PENDING || 
     o.status === OrderStatus.PREPARING
@@ -30,160 +30,158 @@ export const KDSView: React.FC<KDSViewProps> = ({ orders, onUpdateOrderStatus, o
       switch(type) {
           case OrderType.DINE_IN: return 'Mesa';
           case OrderType.TAKEAWAY: return 'Llevar';
-          case OrderType.DELIVERY: return 'Delivery';
+          case OrderType.DELIVERY: return 'Envío';
       }
   };
 
   return (
-    <div className="p-4 md:p-6 h-full bg-slate-900 text-white overflow-y-auto pb-24 md:pb-8">
-      {/* Header & Filters */}
-      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-        <div>
-            <h2 className="text-2xl font-bold flex items-center gap-2">
-                {stationMode ? (
-                    <span className="text-emerald-400 flex items-center gap-2"><Monitor size={24}/> Estación: {filterArea === 'ALL' ? 'MAESTRA' : filterArea}</span>
-                ) : (
-                    <>
-                    <ChefHat className="text-brand-500" />
-                    Monitor de Pedidos (KDS)
-                    </>
-                )}
-            </h2>
-            <p className="text-slate-400 text-sm">
-                {stationMode 
-                    ? `Solo mostrando tickets correspondientes a ${filterArea === 'ALL' ? 'todas las áreas' : filterArea}` 
-                    : 'Vista general de producción'}
-            </p>
-        </div>
-        
-        <div className="flex flex-col md:flex-row gap-3 items-end md:items-center">
-            {/* Station Mode Toggle */}
-            <div className="flex items-center space-x-2 bg-slate-800 p-1 rounded-lg">
-                <span className="text-xs font-bold text-slate-400 px-2">MODO ESTACIÓN</span>
+    <div className="flex flex-col h-full bg-slate-950 text-white overflow-hidden">
+      {/* Header Fijo con Filtros Optimizados para Móvil */}
+      <div className="p-4 bg-slate-900 border-b border-slate-800 z-30 shadow-xl">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="flex items-center gap-3">
+                <div className="bg-brand-600 p-2 rounded-lg shrink-0">
+                    <Monitor size={20} className="text-white" />
+                </div>
+                <div>
+                    <h2 className="text-lg font-bold leading-none">Monitor KDS</h2>
+                    <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-bold">
+                        {stationMode ? `ESTACIÓN: ${filterArea}` : 'VISTA GLOBAL'}
+                    </p>
+                </div>
+            </div>
+            
+            <div className="flex w-full md:w-auto items-center gap-2 overflow-hidden">
+                {/* Selector de Áreas con Scroll Horizontal en Móvil */}
+                <div className="flex bg-slate-800 p-1 rounded-xl overflow-x-auto no-scrollbar flex-1 md:flex-none">
+                    {[
+                        { id: 'ALL', label: 'Todo', icon: <Filter size={14} /> },
+                        { id: ProductionArea.KITCHEN, label: 'Cocina', icon: <ChefHat size={14} /> },
+                        { id: ProductionArea.GRILL, label: 'Asador', icon: <Flame size={14} /> },
+                        { id: ProductionArea.BAR, label: 'Barra', icon: <Beer size={14} /> }
+                    ].map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setFilterArea(tab.id as any)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                                filterArea === tab.id 
+                                ? 'bg-brand-600 text-white shadow-lg' 
+                                : 'text-slate-400 hover:text-white'
+                            }`}
+                        >
+                            {tab.icon}
+                            <span className={filterArea === tab.id ? 'inline' : 'hidden sm:inline'}>{tab.label}</span>
+                        </button>
+                    ))}
+                </div>
+
                 <button 
                     onClick={() => setStationMode(!stationMode)}
-                    className={`w-10 h-6 rounded-full transition-colors flex items-center p-1 ${stationMode ? 'bg-emerald-500 justify-end' : 'bg-slate-600 justify-start'}`}
+                    className={`p-2.5 rounded-xl transition-all border ${stationMode ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : 'bg-slate-800 border-slate-700 text-slate-400'}`}
+                    title="Alternar Modo Estación"
                 >
-                    <div className="w-4 h-4 bg-white rounded-full shadow-sm"></div>
+                    <Monitor size={18} />
                 </button>
-            </div>
-
-            <div className="flex bg-slate-800 p-1 rounded-lg overflow-x-auto max-w-full">
-                {[
-                    { id: 'ALL', label: 'Todo', icon: <Filter size={16} /> },
-                    { id: ProductionArea.KITCHEN, label: 'Cocina', icon: <ChefHat size={16} /> },
-                    { id: ProductionArea.GRILL, label: 'Asador', icon: <Flame size={16} /> },
-                    { id: ProductionArea.BAR, label: 'Barra', icon: <Beer size={16} /> }
-                ].map(tab => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setFilterArea(tab.id as any)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-bold transition-colors whitespace-nowrap ${
-                            filterArea === tab.id 
-                            ? 'bg-brand-600 text-white' 
-                            : 'text-slate-400 hover:text-white hover:bg-slate-700'
-                        }`}
-                    >
-                        {tab.icon}
-                        <span>{tab.label}</span>
-                    </button>
-                ))}
             </div>
         </div>
       </div>
 
-      {/* Orders Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {activeOrders.length === 0 ? (
-            <div className="col-span-full flex flex-col items-center justify-center py-20 text-slate-600">
-                <ChefHat size={64} className="mb-4 opacity-20" />
-                <h3 className="text-xl font-bold">No hay pedidos pendientes</h3>
-                <p>Todo está tranquilo por ahora.</p>
-            </div>
-        ) : (
-            activeOrders.map(order => {
-                // Filter items inside the order based on the selected area
-                const relevantItems = order.items.filter(item => 
-                    filterArea === 'ALL' || item.product.productionArea === filterArea
-                );
+      {/* Grid de Pedidos con scroll independiente */}
+      <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-slate-950 pb-20 md:pb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-w-[1600px] mx-auto">
+            {activeOrders.length === 0 ? (
+                <div className="col-span-full flex flex-col items-center justify-center py-32 text-slate-700">
+                    <ChefHat size={80} className="mb-4 opacity-10 animate-pulse" />
+                    <h3 className="text-xl font-bold">Sin pedidos activos</h3>
+                    <p className="text-sm">La cocina está al día</p>
+                </div>
+            ) : (
+                activeOrders.map(order => {
+                    const relevantItems = order.items.filter(item => 
+                        filterArea === 'ALL' || item.product.productionArea === filterArea
+                    );
 
-                if (relevantItems.length === 0) return null;
-                
-                // Verificar si todos los items RELEVANTES para esta vista estan listos
-                const allRelevantReady = relevantItems.every(i => i.status === ItemStatus.READY);
+                    if (relevantItems.length === 0) return null;
+                    
+                    const allRelevantReady = relevantItems.every(i => i.status === ItemStatus.READY);
+                    const elapsedTime = Math.floor((new Date().getTime() - new Date(order.createdAt).getTime()) / 60000);
+                    const isLate = elapsedTime > 15;
 
-                const elapsedTime = Math.floor((new Date().getTime() - new Date(order.createdAt).getTime()) / 60000);
-                const isLate = elapsedTime > 15; // 15 mins warning
-
-                return (
-                    <div key={order.id} className={`bg-slate-800 rounded-xl border overflow-hidden flex flex-col shadow-lg animate-in zoom-in-95 duration-200 ${allRelevantReady ? 'border-emerald-500 opacity-60' : 'border-slate-700'}`}>
-                        {/* Order Header */}
-                        <div className={`p-3 flex justify-between items-center ${isLate ? 'bg-red-900/50' : 'bg-slate-700/50'}`}>
-                            <div>
-                                <h3 className="font-bold text-lg">
-                                    {order.tableId 
-                                        ? `Mesa ${order.tableId.replace('t', '')}` // Simple parsing for demo
-                                        : `#${order.id.slice(0,4)}`
-                                    }
-                                </h3>
-                                <span className="text-xs font-semibold px-2 py-0.5 rounded bg-slate-600 text-slate-300">
-                                    {getOrderTypeLabel(order.type)}
-                                </span>
+                    return (
+                        <div key={order.id} className={`flex flex-col bg-slate-900 rounded-2xl border-2 shadow-2xl transition-all duration-300 ${
+                            allRelevantReady ? 'border-emerald-500/50 opacity-60' : isLate ? 'border-red-500/50 animate-pulse' : 'border-slate-800'
+                        }`}>
+                            {/* Cabecera del Ticket */}
+                            <div className={`p-4 rounded-t-xl flex justify-between items-center ${isLate ? 'bg-red-500/10' : 'bg-slate-800/50'}`}>
+                                <div>
+                                    <h3 className="font-black text-xl text-white">
+                                        {order.tableId ? `MESA ${order.tableId.replace(/\D/g, '')}` : `ORDEN #${order.id.slice(0,4)}`}
+                                    </h3>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-400 border border-brand-500/30 uppercase">
+                                            {getOrderTypeLabel(order.type)}
+                                        </span>
+                                        <span className="text-[10px] text-slate-500 font-bold">
+                                            {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className={`flex flex-col items-end ${isLate ? 'text-red-400' : 'text-emerald-400'}`}>
+                                    <div className="flex items-center gap-1.5 font-black text-lg">
+                                        <Clock size={16} />
+                                        {elapsedTime}'
+                                    </div>
+                                    <span className="text-[9px] font-bold uppercase tracking-tighter opacity-70">Tiempo</span>
+                                </div>
                             </div>
-                            <div className={`flex items-center gap-1 font-mono font-bold ${isLate ? 'text-red-400' : 'text-emerald-400'}`}>
-                                <Clock size={16} />
-                                {elapsedTime} min
-                            </div>
-                        </div>
 
-                        {/* Items List */}
-                        <div className="p-4 flex-1 space-y-3">
-                            {relevantItems.map((item, idx) => (
-                                <div key={idx} className={`flex justify-between items-start border-b border-slate-700/50 pb-2 last:border-0 last:pb-0 ${item.status === ItemStatus.READY ? 'opacity-40' : ''}`}>
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className={`font-bold text-lg ${item.status === ItemStatus.READY ? 'text-emerald-500 line-through' : 'text-brand-400'}`}>{item.quantity}x</span>
-                                            <span className="font-medium text-slate-200">{item.product.name}</span>
+                            {/* Lista de Items */}
+                            <div className="p-4 flex-1 space-y-4">
+                                {relevantItems.map((item, idx) => (
+                                    <div key={idx} className={`flex justify-between items-start gap-3 group ${item.status === ItemStatus.READY ? 'opacity-30' : ''}`}>
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-3">
+                                                <span className={`text-2xl font-black tabular-nums ${item.status === ItemStatus.READY ? 'text-slate-500' : 'text-brand-500'}`}>
+                                                    {item.quantity}
+                                                </span>
+                                                <span className={`text-sm font-bold leading-tight ${item.status === ItemStatus.READY ? 'text-slate-500 line-through' : 'text-slate-100'}`}>
+                                                    {item.product.name.toUpperCase()}
+                                                </span>
+                                            </div>
+                                            {item.notes && (
+                                                <div className="ml-9 mt-1 p-2 bg-yellow-500/10 border-l-2 border-yellow-500 rounded-r-md">
+                                                    <p className="text-[11px] text-yellow-500 font-bold italic uppercase">{item.notes}</p>
+                                                </div>
+                                            )}
                                         </div>
-                                        {item.notes && (
-                                            <p className="text-xs text-yellow-500 italic mt-1">Nota: {item.notes}</p>
-                                        )}
-                                        {item.variant && (
-                                            <p className="text-xs text-slate-500">{item.variant.name}</p>
-                                        )}
+                                        <div className="pt-1">
+                                            {item.status === ItemStatus.READY ? <Check size={20} className="text-emerald-500" /> : <ChevronRight size={18} className="text-slate-700" />}
+                                        </div>
                                     </div>
-                                    <div className="text-slate-500 flex flex-col items-end gap-1" title={item.product.productionArea}>
-                                        {getAreaIcon(item.product.productionArea)}
-                                        {item.status === ItemStatus.READY && <Check size={14} className="text-emerald-500" />}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
 
-                        {/* Action Footer */}
-                        <div className="p-3 bg-slate-700/30 border-t border-slate-700">
-                            {allRelevantReady ? (
-                                <div className="text-center text-emerald-400 font-bold py-3 flex items-center justify-center gap-2">
-                                    <CheckCircle size={20} />
-                                    <span>Completado</span>
-                                </div>
-                            ) : (
-                                <button 
-                                    onClick={() => onUpdateOrderItems(order.id, filterArea)}
-                                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-colors active:scale-95"
-                                >
-                                    <CheckCircle size={20} />
-                                    {stationMode && filterArea !== 'ALL' 
-                                        ? `Listo ${filterArea}` 
-                                        : 'Marcar Todo Listo'
-                                    }
-                                </button>
-                            )}
+                            {/* Botón de Acción Grande (Touch Friendly) */}
+                            <div className="p-4 bg-slate-900 rounded-b-2xl">
+                                {allRelevantReady ? (
+                                    <div className="bg-emerald-500/10 text-emerald-400 text-center py-4 rounded-xl font-black uppercase text-xs tracking-widest border border-emerald-500/20 flex items-center justify-center gap-2">
+                                        <CheckCircle size={18} /> PEDIDO LISTO
+                                    </div>
+                                ) : (
+                                    <button 
+                                        onClick={() => onUpdateOrderItems(order.id, filterArea)}
+                                        className="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-black py-4 rounded-xl flex items-center justify-center gap-3 transition-all shadow-lg shadow-emerald-900/20 uppercase text-sm tracking-wide"
+                                    >
+                                        <Check size={22} strokeWidth={3} />
+                                        {stationMode && filterArea !== 'ALL' ? `DESPACHAR ${filterArea}` : 'COMPLETAR TICKET'}
+                                    </button>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                );
-            })
-        )}
+                    );
+                })
+            )}
+        </div>
       </div>
     </div>
   );

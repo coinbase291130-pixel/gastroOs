@@ -186,12 +186,20 @@ const App: React.FC = () => {
     setUser(loggedInUser);
     notify(`Bienvenido, ${loggedInUser.name}`, 'success');
     if (loggedInUser.branchId) setCurrentBranchId(loggedInUser.branchId);
+    
+    // Reglas de redirección por rol
     switch (loggedInUser.role) {
-        case Role.CASHIER: setCurrentView('tables'); break;
+        case Role.CASHIER: 
+            setCurrentView('tables'); 
+            break;
         case Role.CHEF:
-        case Role.GRILL_MASTER: setCurrentView('kds'); break;
-        case Role.WAITER: setCurrentView('tables'); break;
-        default: setCurrentView('dashboard'); break;
+        case Role.GRILL_MASTER: 
+        case Role.WAITER: // Mesero ahora también solo carga el KDS según requerimiento
+            setCurrentView('kds'); 
+            break;
+        default: 
+            setCurrentView('dashboard'); 
+            break;
     }
   };
 

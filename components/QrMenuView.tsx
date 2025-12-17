@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from 'react';
 import { Product, Branch } from '../types';
 import { QrCode, ExternalLink, Printer, Share2, Smartphone, ChefHat, Copy, Check, ArrowRight } from 'lucide-react';
@@ -183,7 +184,8 @@ export const QrMenuView: React.FC<QrMenuViewProps> = ({ products, currentBranch 
                                           </div>
                                           
                                           <div className="space-y-3">
-                                              {items.map(product => (
+                                              {/* Cast items as Product[] to fix unknown property map error */}
+                                              {(items as Product[]).map(product => (
                                                   <div key={product.id} className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100 flex gap-3">
                                                       <div className="w-20 h-20 bg-slate-100 rounded-xl flex-shrink-0 overflow-hidden relative">
                                                           <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
