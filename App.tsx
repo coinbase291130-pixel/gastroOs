@@ -14,10 +14,10 @@ import { ReportsView } from './components/ReportsView';
 import { ExpensesView } from './components/ExpensesView';
 import { QrMenuView } from './components/QrMenuView';
 import { PublicMenu } from './components/PublicMenu';
-import { Delete, Eraser, User as UserIcon, ChefHat, ChevronDown, LogOut } from 'lucide-react';
+import { Delete, Eraser, User as UserIcon, ChefHat, LogOut, Key } from 'lucide-react';
 import { useNotification } from './components/NotificationContext';
 
-// --- PIN LOGIN COMPONENT ---
+// --- PIN LOGIN COMPONENT REDISEÑADO ---
 const Login: React.FC<{ onLogin: (user: User) => void; users: User[] }> = ({ onLogin, users }) => {
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
@@ -54,70 +54,77 @@ const Login: React.FC<{ onLogin: (user: User) => void; users: User[] }> = ({ onL
   };
 
   return (
-    <div className="h-[100dvh] w-full bg-slate-950 flex flex-col items-center justify-center p-4 font-sans overflow-hidden">
-      {/* Fondo decorativo sutil */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
-          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-600 rounded-full blur-[120px]"></div>
-          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand-800 rounded-full blur-[120px]"></div>
+    <div className="h-[100dvh] w-full bg-slate-950 flex flex-col items-center justify-center p-4 font-sans overflow-hidden relative">
+      {/* Fondo decorativo dinámico */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-brand-600/20 rounded-full blur-[120px] animate-pulse"></div>
+          <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-brand-800/20 rounded-full blur-[120px]"></div>
       </div>
 
-      <div className="bg-white rounded-[2.5rem] p-6 md:p-10 w-full max-w-[380px] shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col items-center relative z-10 animate-in fade-in zoom-in duration-500">
-        <div className="mb-6 text-center">
-          <div className="bg-brand-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-brand-900/20">
+      <div className="bg-white rounded-[2.5rem] p-6 sm:p-8 w-full max-w-[360px] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] flex flex-col items-center relative z-10 animate-in fade-in zoom-in duration-700">
+        
+        {/* Header Compacto */}
+        <div className="mb-4 text-center">
+          <div className="bg-brand-600 w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-xl shadow-brand-900/30">
              <ChefHat size={32} className="text-white" />
           </div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tighter mb-1 uppercase">GastroOS</h1>
-          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Ingresa tu PIN</p>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter uppercase mb-1">GastroOS</h1>
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">Acceso Seguro</p>
         </div>
 
-        <div className="flex justify-center space-x-5 mb-8">
+        {/* Indicador de PIN */}
+        <div className="flex justify-center space-x-4 mb-4">
             {[0, 1, 2, 3].map(i => (
                 <div 
                   key={i} 
-                  className={`w-4 h-4 rounded-full border-2 transition-all duration-200 ${
+                  className={`w-3.5 h-3.5 rounded-full border-2 transition-all duration-300 ${
                     pin.length > i 
-                    ? 'bg-brand-600 border-brand-600 scale-125 shadow-lg shadow-brand-200' 
-                    : 'bg-white border-slate-200'
+                    ? 'bg-brand-600 border-brand-600 scale-110 shadow-lg shadow-brand-200' 
+                    : 'bg-slate-50 border-slate-200'
                   }`}
                 ></div>
             ))}
         </div>
         
-        <div className="h-6 mb-2">
+        <div className="h-5 mb-2">
           {error && <div className="text-red-500 font-black text-[10px] uppercase tracking-tighter animate-bounce">{error}</div>}
         </div>
 
-        <div className="grid grid-cols-3 gap-3 w-full mb-8">
+        {/* Teclado Numérico Optimizado */}
+        <div className="grid grid-cols-3 gap-2 w-full mb-6">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
                 <button 
                     key={num} 
                     onClick={() => handleDigit(num.toString())}
-                    className="h-14 md:h-16 w-full bg-slate-50 rounded-2xl text-xl font-black text-slate-800 hover:bg-slate-100 active:scale-90 transition-all border border-slate-100"
+                    className="h-12 sm:h-14 w-full bg-slate-50 rounded-2xl text-xl font-black text-slate-800 hover:bg-slate-100 active:scale-90 transition-all border border-slate-100 flex items-center justify-center"
                 >
                     {num}
                 </button>
             ))}
-            <button onClick={handleClear} className="h-14 md:h-16 w-full bg-slate-50 rounded-2xl text-red-500 hover:bg-red-50 flex items-center justify-center border border-slate-100 active:scale-90 transition-all">
-                <Eraser size={22} />
+            <button onClick={handleClear} className="h-12 sm:h-14 w-full bg-slate-50 rounded-2xl text-red-500 hover:bg-red-50 flex items-center justify-center border border-slate-100 active:scale-90 transition-all">
+                <Eraser size={20} />
             </button>
-            <button onClick={() => handleDigit('0')} className="h-14 md:h-16 w-full bg-slate-50 rounded-2xl text-xl font-black text-slate-800 hover:bg-slate-100 border border-slate-100 active:scale-90 transition-all">
+            <button onClick={() => handleDigit('0')} className="h-12 sm:h-14 w-full bg-slate-50 rounded-2xl text-xl font-black text-slate-800 hover:bg-slate-100 border border-slate-100 active:scale-90 transition-all">
                 0
             </button>
-            <button onClick={handleDelete} className="h-14 md:h-16 w-full bg-slate-50 rounded-2xl text-slate-400 hover:bg-slate-100 flex items-center justify-center border border-slate-100 active:scale-90 transition-all">
-                <Delete size={22} />
+            <button onClick={handleDelete} className="h-12 sm:h-14 w-full bg-slate-50 rounded-2xl text-slate-400 hover:bg-slate-100 flex items-center justify-center border border-slate-100 active:scale-90 transition-all">
+                <Delete size={20} />
             </button>
         </div>
 
+        {/* Botón de Acción Principal */}
         <button 
             onClick={handleSubmit} 
             disabled={pin.length !== 4}
-            className="w-full bg-brand-600 disabled:bg-slate-100 disabled:text-slate-300 hover:bg-brand-700 text-white font-black py-4 rounded-[1.25rem] transition-all shadow-xl shadow-brand-600/20 flex justify-center items-center gap-3 uppercase text-xs tracking-widest active:scale-95"
+            className="w-full bg-brand-600 disabled:bg-slate-100 disabled:text-slate-300 hover:bg-brand-700 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-brand-600/20 flex justify-center items-center gap-3 uppercase text-[11px] tracking-widest active:scale-95"
         >
-            <UserIcon size={18} /> Acceder al Sistema
+            <Key size={18} /> Iniciar Sesión
         </button>
       </div>
 
-      <p className="mt-8 text-[10px] font-black text-slate-600 uppercase tracking-[0.3em]">GastroOS Cloud v1.0</p>
+      <div className="absolute bottom-6 left-0 right-0 text-center opacity-40">
+        <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em]">GastroOS Cloud v1.0.2</p>
+      </div>
     </div>
   );
 };
@@ -208,8 +215,6 @@ const App: React.FC = () => {
   };
 
   // --- CRUD HANDLERS ---
-
-  // Register Handlers
   const handleOpenRegister = (registerId: string, amount: number) => {
     const session: RegisterSession = {
       id: Math.random().toString(36).substr(2, 9),
@@ -236,39 +241,30 @@ const App: React.FC = () => {
   const handleUpdateRegister = (register: CashRegister) => setRegisters(prev => prev.map(r => r.id === register.id ? register : r));
   const handleDeleteRegister = (id: string) => setRegisters(prev => prev.map(r => r.id === id ? { ...r, isActive: false } : r));
 
-  // Customer Handlers
   const handleAddCustomer = (customer: Customer) => setCustomers(prev => [...prev, customer]);
   const handleUpdateCustomer = (customer: Customer) => setCustomers(prev => prev.map(c => c.id === customer.id ? customer : c));
 
-  // Table Handlers
   const handleAddTable = (table: Table) => setTables(prev => [...prev, table]);
   const handleUpdateTable = (table: Table) => setTables(prev => prev.map(t => t.id === table.id ? table : t));
 
-  // Product Handlers
   const handleAddProduct = (product: Product) => setProducts(prev => [...prev, product]);
   const handleUpdateProduct = (product: Product) => setProducts(prev => prev.map(p => p.id === product.id ? product : p));
 
-  // Inventory Handlers
   const handleAddInventory = (item: InventoryItem) => setInventory(prev => [...prev, item]);
   const handleUpdateInventory = (item: InventoryItem) => setInventory(prev => prev.map(i => i.id === item.id ? item : i));
 
-  // Supplier Handlers
   const handleAddSupplier = (supplier: Supplier) => setSuppliers(prev => [...prev, supplier]);
   const handleUpdateSupplier = (supplier: Supplier) => setSuppliers(prev => prev.map(s => s.id === supplier.id ? supplier : s));
 
-  // Expense Handlers
   const handleAddExpense = (expense: Expense) => setExpenses(prev => [...prev, expense]);
   const handleUpdateExpense = (expense: Expense) => setExpenses(prev => prev.map(e => e.id === expense.id ? expense : e));
 
-  // User Handlers
   const handleAddUser = (u: User) => setUsers(prev => [...prev, u]);
   const handleUpdateUser = (u: User) => setUsers(prev => prev.map(curr => curr.id === u.id ? u : curr));
 
-  // Branch Handlers
   const handleAddBranch = (branch: Branch) => setBranches(prev => [...prev, branch]);
   const handleUpdateBranch = (branch: Branch) => setBranches(prev => prev.map(b => b.id === branch.id ? branch : b));
 
-  // Category Handlers
   const handleAddCategory = (category: Category) => setCategories(prev => [...prev, category]);
   const handleUpdateCategory = (category: Category) => setCategories(prev => prev.map(c => c.id === category.id ? category : c));
   const handleDeleteCategory = (id: string) => setCategories(prev => prev.map(c => c.id === id ? { ...c, isActive: false } : c));
