@@ -62,16 +62,18 @@ export const TablesView: React.FC<TablesViewProps> = ({ tables, onSelectTable, o
 
   if (!isRegisterOpen) {
     return (
-        <div className="flex flex-col items-center justify-center h-full bg-slate-100 text-slate-500">
-            <div className="bg-white p-8 rounded-2xl shadow-lg text-center">
-                <div className="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
-                    <Lock size={32} />
+        <div className="flex flex-col items-center justify-center h-full bg-slate-100 text-slate-500 w-full animate-in fade-in duration-500">
+            <div className="bg-white p-10 rounded-3xl shadow-xl text-center max-w-sm mx-auto border border-slate-200">
+                <div className="bg-red-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 text-red-500 ring-8 ring-red-50">
+                    <Lock size={40} />
                 </div>
-                <h2 className="text-2xl font-bold text-slate-800 mb-2">Atención en Mesa Bloqueada</h2>
-                <p className="max-w-xs mx-auto">La caja está cerrada. No se pueden gestionar mesas ni pedidos.</p>
+                <h2 className="text-2xl font-black text-slate-800 mb-3 uppercase tracking-tighter">Punto de Venta Bloqueado</h2>
+                <p className="max-w-xs mx-auto text-slate-500 font-medium leading-relaxed">
+                    La caja se encuentra cerrada. Debes realizar la apertura en el <strong>Tablero</strong> para comenzar a vender. Solo el administrador puede realizar esta operación.
+                </p>
             </div>
         </div>
-    )
+    );
   }
 
   return (

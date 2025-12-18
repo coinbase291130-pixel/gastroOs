@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { MOCK_BRANCHES, MOCK_COMPANY, MOCK_CUSTOMERS, MOCK_INVENTORY, MOCK_PRODUCTS, MOCK_USERS, MOCK_TABLES, MOCK_REGISTERS, MOCK_SUPPLIERS, MOCK_EXPENSES, MOCK_CATEGORIES } from './constants';
 import { CartItem, Customer, Order, OrderStatus, OrderType, PaymentMethod, Role, User, Table, TableStatus, Product, LoyaltyConfig, CashRegister, RegisterSession, InventoryItem, ProductionArea, ItemStatus, Supplier, Expense, Branch, Category } from './types';
@@ -97,11 +98,6 @@ const Login: React.FC<{ onLogin: (user: User) => void; users: User[] }> = ({ onL
         >
             <UserIcon size={20} /> INICIAR SESIÓN
         </button>
-
-        <div className="mt-6 text-[10px] text-slate-400 text-center w-full bg-slate-50 p-2 rounded">
-            <p>Admin: 1111 | Cajero: 2222</p>
-            <p>Chef: 3333 | Asador: 4444 | Mesero: 5555</p>
-        </div>
       </div>
     </div>
   );
@@ -182,23 +178,7 @@ const App: React.FC = () => {
     setUser(loggedInUser);
     notify(`Bienvenido, ${loggedInUser.name}`, 'success');
     if (loggedInUser.branchId) setCurrentBranchId(loggedInUser.branchId);
-    
-    switch (loggedInUser.role) {
-        case Role.CASHIER: 
-            setCurrentView('tables'); 
-            break;
-        case Role.CHEF:
-        case Role.GRILL_MASTER: 
-        case Role.BARTENDER:
-            setCurrentView('kds'); 
-            break;
-        case Role.WAITER:
-            setCurrentView('tables');
-            break;
-        default: 
-            setCurrentView('dashboard'); 
-            break;
-    }
+    setCurrentView(loggedInUser.role === Role.CHEF || loggedInUser.role === Role.GRILL_MASTER ? 'kds' : 'tables');
   };
 
   const handleLogout = () => {
@@ -208,34 +188,72 @@ const App: React.FC = () => {
     notify('Sesión cerrada correctamente', 'info');
   };
 
-  const handleAddBranch = (newBranch: Branch) => { setBranches(prev => [...prev, newBranch]); notify('Sucursal creada exitosamente.', 'success'); };
-  const handleUpdateBranch = (updatedBranch: Branch) => { setBranches(prev => prev.map(b => b.id === updatedBranch.id ? updatedBranch : b)); notify('Datos de sucursal actualizados.', 'success'); };
-  const handleChangeBranch = (branchId: string) => { setCurrentBranchId(branchId); setSelectedTable(undefined); const bName = branches.find(b => b.id === branchId)?.name; notify(`Cambiado a sucursal: ${bName}`, 'info'); };
-  const handleOpenRegister = (registerId: string, amount: number) => { const newSession: RegisterSession = { id: `sess-${Date.now()}`, registerId: registerId, userId: user!.id, userName: user!.name, openingAmount: amount, startTime: new Date(), totalSales: 0 }; setRegisters(prev => prev.map(r => r.id === registerId ? { ...r, isOpen: true, currentUser: user!.name, currentUserId: user!.id } : r )); setActiveSession(newSession); notify(`Caja abierta con éxito. Monto: $${amount.toFixed(2)}`, 'success'); };
-  const handleCloseRegister = (closingAmount: number) => { if (!activeSession) return; const expectedAmount = activeSession.openingAmount + activeSession.totalSales; const difference = closingAmount - expectedAmount; let type: 'success' | 'warning' | 'error' = 'success'; let message = `Caja cerrada. `; if (Math.abs(difference) < 0.01) { message += `Cuadre perfecto.`; } else if (difference > 0) { message += `Sobrante: $${difference.toFixed(2)}`; type = 'warning'; } else { message += `Faltante: $${Math.abs(difference).toFixed(2)}`; type = 'error'; } notify(message, type); setRegisters(prev => prev.map(r => r.id === activeSession.registerId ? { ...r, isOpen: false, currentUser: undefined, currentUserId: undefined } : r )); setActiveSession(null); setCurrentView('dashboard'); };
-  const handleAddRegister = (newReg: CashRegister) => { setRegisters(prev => [...prev, { ...newReg, isActive: true }]); notify('Caja creada exitosamente.', 'success'); };
-  const handleUpdateRegister = (updatedRegister: CashRegister) => { setRegisters(prev => prev.map(r => r.id === updatedRegister.id ? updatedRegister : r)); notify('Caja actualizada exitosamente.', 'success'); };
-  const handleDeleteRegister = (registerId: string) => { setRegisters(prev => prev.map(r => r.id === registerId ? { ...r, isActive: false } : r)); notify('Caja movida a la papelera.', 'info'); };
-  const handleAddCategory = (newCat: Category) => { setCategories(prev => [...prev, newCat]); notify('Categoría creada exitosamente.', 'success'); };
-  const handleUpdateCategory = (updatedCat: Category) => { setCategories(prev => prev.map(c => c.id === updatedCat.id ? updatedCat : c)); notify('Categoría actualizada exitosamente.', 'success'); };
-  const handleDeleteCategory = (catId: string) => { setCategories(prev => prev.map(c => c.id === catId ? { ...c, isActive: false } : c)); notify('Categoría movida a la papelera.', 'info'); };
-  const handleSelectTable = (table: Table | undefined) => { if (!table) { setSelectedTable(undefined); return; } setSelectedTable(table); setCurrentView('pos'); };
-  const handleAddTable = (newTable: Table) => { setTables(prev => [...prev, { ...newTable, branchId: currentBranchId }]); notify('Mesa registrada exitosamente.', 'success'); };
-  const handleUpdateTable = (updatedTable: Table) => { setTables(prev => prev.map(t => t.id === updatedTable.id ? updatedTable : t)); notify('Mesa actualizada correctamente.', 'success'); };
-  const handleChangeTable = (orderId: string, newTableId: string) => { setOrders(prev => prev.map(o => o.id === orderId ? { ...o, tableId: newTableId } : o)); const oldTableId = selectedTable?.id; setTables(prev => prev.map(t => { if (t.id === oldTableId) return { ...t, status: TableStatus.AVAILABLE, currentOrderId: undefined }; if (t.id === newTableId) return { ...t, status: TableStatus.OCCUPIED, currentOrderId: orderId }; return t; })); const newTable = tables.find(t => t.id === newTableId); if (newTable) { setSelectedTable({ ...newTable, status: TableStatus.OCCUPIED, currentOrderId: orderId }); } notify('Mesa cambiada exitosamente.', 'success'); };
-  const handleAddProduct = (newProduct: Product) => { setProducts(prev => [...prev, newProduct]); notify('Producto agregado exitosamente.', 'success'); };
-  const handleUpdateProduct = (updatedProduct: Product) => { setProducts(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p)); notify('Producto actualizado.', 'success'); };
-  const handleAddCustomer = (newCustomer: Customer) => { setCustomers(prev => [...prev, newCustomer]); notify('Cliente registrado exitosamente.', 'success'); };
-  const handleUpdateCustomer = (updatedCustomer: Customer) => { setCustomers(prev => prev.map(c => c.id === updatedCustomer.id ? updatedCustomer : c)); notify('Datos de cliente actualizados.', 'success'); };
-  const handleAddUser = (newUser: User) => { setUsers(prev => [...prev, newUser]); notify('Empleado registrado exitosamente.', 'success'); };
-  const handleUpdateUser = (updatedUser: User) => { setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u)); notify('Usuario actualizado.', 'success'); };
-  const handleAddExpense = (newExpense: Expense) => { setExpenses(prev => [...prev, { ...newExpense, branchId: currentBranchId, isActive: true }]); notify('Gasto registrado.', 'success'); };
-  const handleUpdateExpense = (updatedExpense: Expense) => { setExpenses(prev => prev.map(e => e.id === updatedExpense.id ? updatedExpense : e)); notify('Gasto actualizado.', 'success'); };
-  const handleDeleteExpense = async (id: string) => { const confirmed = await confirmAction({ title: 'Mover a Papelera', message: '¿Estás seguro de mover este gasto a la papelera?', type: 'warning' }); if (confirmed) { setExpenses(prev => prev.map(e => e.id === id ? { ...e, isActive: false } : e)); notify('Gasto movido a la papelera.', 'info'); } };
-  const handleAddInventory = (newItem: InventoryItem) => { setInventory(prev => [...prev, newItem]); notify('Insumo registrado exitosamente.', 'success'); };
-  const handleUpdateInventory = (item: InventoryItem) => { setInventory(prev => prev.map(i => i.id === item.id ? item : i)); notify('Inventario actualizado.', 'success'); };
-  const handleAddSupplier = (supplier: Supplier) => { setSuppliers(prev => [...prev, supplier]); notify('Proveedor registrado.', 'success'); };
-  const handleUpdateSupplier = (updatedSupplier: Supplier) => { setSuppliers(prev => prev.map(s => s.id === updatedSupplier.id ? updatedSupplier : s)); notify('Proveedor actualizado.', 'success'); };
+  // --- CRUD HANDLERS ---
+
+  // Register Handlers
+  const handleOpenRegister = (registerId: string, amount: number) => {
+    const session: RegisterSession = {
+      id: Math.random().toString(36).substr(2, 9),
+      registerId,
+      userId: user?.id || '',
+      userName: user?.name || '',
+      openingAmount: amount,
+      startTime: new Date(),
+      totalSales: 0
+    };
+    setActiveSession(session);
+    setRegisters(prev => prev.map(r => r.id === registerId ? { ...r, isOpen: true, currentUserId: user?.id, currentUser: user?.name } : r));
+    notify('Caja abierta correctamente', 'success');
+  };
+
+  const handleCloseRegister = (closingAmount: number) => {
+    if (!activeSession) return;
+    setActiveSession(null);
+    setRegisters(prev => prev.map(r => r.id === activeSession.registerId ? { ...r, isOpen: false, currentUserId: undefined, currentUser: undefined } : r));
+    notify('Turno cerrado correctamente', 'info');
+  };
+
+  const handleAddRegister = (register: CashRegister) => setRegisters(prev => [...prev, register]);
+  const handleUpdateRegister = (register: CashRegister) => setRegisters(prev => prev.map(r => r.id === register.id ? register : r));
+  const handleDeleteRegister = (id: string) => setRegisters(prev => prev.map(r => r.id === id ? { ...r, isActive: false } : r));
+
+  // Customer Handlers
+  const handleAddCustomer = (customer: Customer) => setCustomers(prev => [...prev, customer]);
+  const handleUpdateCustomer = (customer: Customer) => setCustomers(prev => prev.map(c => c.id === customer.id ? customer : c));
+
+  // Table Handlers
+  const handleAddTable = (table: Table) => setTables(prev => [...prev, table]);
+  const handleUpdateTable = (table: Table) => setTables(prev => prev.map(t => t.id === table.id ? table : t));
+
+  // Product Handlers
+  const handleAddProduct = (product: Product) => setProducts(prev => [...prev, product]);
+  const handleUpdateProduct = (product: Product) => setProducts(prev => prev.map(p => p.id === product.id ? product : p));
+
+  // Inventory Handlers
+  const handleAddInventory = (item: InventoryItem) => setInventory(prev => [...prev, item]);
+  const handleUpdateInventory = (item: InventoryItem) => setInventory(prev => prev.map(i => i.id === item.id ? item : i));
+
+  // Supplier Handlers
+  const handleAddSupplier = (supplier: Supplier) => setSuppliers(prev => [...prev, supplier]);
+  const handleUpdateSupplier = (supplier: Supplier) => setSuppliers(prev => prev.map(s => s.id === supplier.id ? supplier : s));
+
+  // Expense Handlers
+  const handleAddExpense = (expense: Expense) => setExpenses(prev => [...prev, expense]);
+  const handleUpdateExpense = (expense: Expense) => setExpenses(prev => prev.map(e => e.id === expense.id ? expense : e));
+
+  // User Handlers
+  const handleAddUser = (u: User) => setUsers(prev => [...prev, u]);
+  const handleUpdateUser = (u: User) => setUsers(prev => prev.map(curr => curr.id === u.id ? u : curr));
+
+  // Branch Handlers
+  const handleAddBranch = (branch: Branch) => setBranches(prev => [...prev, branch]);
+  const handleUpdateBranch = (branch: Branch) => setBranches(prev => prev.map(b => b.id === branch.id ? branch : b));
+
+  // Category Handlers
+  const handleAddCategory = (category: Category) => setCategories(prev => [...prev, category]);
+  const handleUpdateCategory = (category: Category) => setCategories(prev => prev.map(c => c.id === category.id ? category : c));
+  // Fix undefined variable 'r' by changing it to 'c'
+  const handleDeleteCategory = (id: string) => setCategories(prev => prev.map(c => c.id === id ? { ...c, isActive: false } : c));
 
   const deductInventory = (items: CartItem[]) => {
       const newInventory = [...inventory]; 
@@ -259,39 +277,15 @@ const App: React.FC = () => {
       };
       items.forEach(cartItem => processProductDeduction(cartItem.product, cartItem.quantity));
       setInventory(newInventory);
-      if (lowStockAlerts.length > 0) {
-          const uniqueAlerts = [...new Set(lowStockAlerts)];
-          notify(`⚠️ STOCK BAJO: ${uniqueAlerts.join(', ')}`, 'warning');
-      }
-  };
-
-  const restoreInventory = (items: CartItem[]) => {
-      const newInventory = [...inventory];
-      const processProductRestoration = (product: Product, quantity: number) => {
-          if (product.isCombo && product.comboItems) {
-              product.comboItems.forEach(comboItem => {
-                  const subProduct = products.find(p => p.id === comboItem.productId);
-                  if (subProduct) processProductRestoration(subProduct, quantity * comboItem.quantity);
-              });
-          } else if (product.ingredients && product.ingredients.length > 0) {
-              product.ingredients.forEach(ing => {
-                  const invItemIndex = newInventory.findIndex(i => i.id === ing.inventoryItemId && i.branchId === currentBranchId);
-                  if (invItemIndex !== -1) newInventory[invItemIndex].stock += ing.quantity * quantity;
-              });
-          }
-      };
-      items.forEach(cartItem => processProductRestoration(cartItem.product, cartItem.quantity));
-      setInventory(newInventory);
+      if (lowStockAlerts.length > 0) notify(`⚠️ STOCK BAJO: ${[...new Set(lowStockAlerts)].join(', ')}`, 'warning');
   };
 
   const handleSendOrder = (items: CartItem[], type: OrderType, customer?: Customer) => {
     const total = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-    const totalCost = items.reduce((sum, item) => sum + (item.product.cost * item.quantity), 0);
     const tax = total * taxRate;
-    const finalTotal = total + tax;
     const itemsWithStatus = items.map(item => ({...item, status: ItemStatus.PENDING}));
     const newOrderId = Math.random().toString(36).substr(2, 9);
-    const newOrder: Order = { id: newOrderId, branchId: currentBranchId, tableId: selectedTable?.id, type, status: OrderStatus.PREPARING, items: itemsWithStatus, subtotal: total, tax: tax, discount: 0, total: finalTotal, totalCost: totalCost, paymentMethod: undefined, customerId: customer?.id, createdAt: new Date() };
+    const newOrder: Order = { id: newOrderId, branchId: currentBranchId, tableId: selectedTable?.id, type, status: OrderStatus.PREPARING, items: itemsWithStatus, subtotal: total, tax: tax, discount: 0, total: total + tax, totalCost: items.reduce((sum, i) => sum + (i.product.cost * i.quantity), 0), customerId: customer?.id, createdAt: new Date() };
     deductInventory(items);
     setOrders(prev => [newOrder, ...prev]);
     if (selectedTable) {
@@ -305,122 +299,67 @@ const App: React.FC = () => {
     if (items.length > 0) {
         const subtotal = total / (1 + taxRate);
         const tax = total - subtotal;
-        const itemsWithStatus = items.map(item => ({...item, status: ItemStatus.READY}));
-        const totalCost = items.reduce((sum, item) => sum + (item.product.cost * item.quantity), 0);
-        const newOrder: Order = { id: Math.random().toString(36).substr(2, 9), branchId: currentBranchId, tableId: selectedTable?.id, type, status: OrderStatus.COMPLETED, items: itemsWithStatus, subtotal: subtotal, tax: tax, discount: 0, total: 0, totalCost: totalCost, paymentMethod: method, customerId: customer?.id, createdAt: new Date(), readyAt: new Date() };
-        const newItemsTotal = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0) * (1 + taxRate);
-        newOrder.total = newItemsTotal;
+        
+        // MODIFICACIÓN CLAVE: Si es Delivery o Llevar, el estado debe ser PREPARING para que Cocina lo vea.
+        // Solo las mesas cerradas se marcan como COMPLETED directamente si ya fueron enviadas antes.
+        const targetStatus = (type === OrderType.DINE_IN) ? OrderStatus.COMPLETED : OrderStatus.PREPARING;
+        
+        const newOrder: Order = { 
+            id: Math.random().toString(36).substr(2, 9), 
+            branchId: currentBranchId, 
+            tableId: selectedTable?.id, 
+            type, 
+            status: targetStatus, 
+            items: items.map(item => ({...item, status: ItemStatus.PENDING})), 
+            subtotal, tax, discount: 0, total, 
+            totalCost: items.reduce((sum, item) => sum + (item.product.cost * item.quantity), 0), 
+            paymentMethod: method, 
+            customerId: customer?.id, 
+            createdAt: new Date() 
+        };
+        
         deductInventory(items);
         setOrders(prev => [newOrder, ...prev]);
-    }
-    if (activeSession) setActiveSession(prev => prev ? { ...prev, totalSales: prev.totalSales + total } : null);
-    if (selectedTable) {
-        setOrders(prev => prev.map(o => (o.tableId === selectedTable.id && (o.status === OrderStatus.PENDING || o.status === OrderStatus.PREPARING || o.status === OrderStatus.READY)) ? { ...o, status: OrderStatus.COMPLETED, paymentMethod: method } : o));
+    } else if (selectedTable) {
+        // Cierre de cuenta acumulada de mesa
+        setOrders(prev => prev.map(o => (o.tableId === selectedTable.id && o.status !== OrderStatus.COMPLETED && o.status !== OrderStatus.CANCELLED) ? { ...o, status: OrderStatus.COMPLETED, paymentMethod: method } : o));
         setTables(prev => prev.map(t => t.id === selectedTable.id ? { ...t, status: TableStatus.AVAILABLE, currentOrderId: undefined } : t));
         setSelectedTable(undefined);
     }
-    notify(`Cobro exitoso: $${total.toFixed(2)} (${method})`, 'success');
-  };
-
-  const handleCancelOrder = async (order: Order) => {
-      const confirmed = await confirmAction({ title: 'Anular Pedido', message: '¿Estás seguro de anular este pedido? Se restaurará el inventario.', type: 'warning', confirmText: 'Sí, Anular' });
-      if (confirmed) {
-          restoreInventory(order.items);
-          setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: OrderStatus.CANCELLED } : o));
-          if (order.tableId) {
-             const hasOtherOrders = orders.some(o => o.tableId === order.tableId && o.id !== order.id && o.status !== OrderStatus.CANCELLED && o.status !== OrderStatus.COMPLETED);
-             if (!hasOtherOrders) {
-                 setTables(prev => prev.map(t => t.id === order.tableId ? { ...t, status: TableStatus.AVAILABLE, currentOrderId: undefined } : t));
-                 if (selectedTable?.id === order.tableId) setSelectedTable(prev => prev ? { ...prev, status: TableStatus.AVAILABLE } : undefined);
-             }
-          }
-          notify('Pedido anulado correctamente.', 'info');
-      }
+    
+    if (activeSession) setActiveSession(prev => prev ? { ...prev, totalSales: prev.totalSales + total } : null);
+    notify(`Cobro registrado: $${total.toFixed(2)}`, 'success');
   };
 
   const handleUpdateOrderStatus = (orderId: string, status: OrderStatus) => { setOrders(prev => prev.map(o => { if (o.id === orderId) { const updates: any = { status }; if (status === OrderStatus.READY && !o.readyAt) { updates.readyAt = new Date(); playNotificationSound(); } return { ...o, ...updates }; } return o; })); };
   const handleUpdateOrderItems = (orderId: string, area: ProductionArea | 'ALL') => { setOrders(prev => prev.map(o => { if (o.id === orderId) { const newItems = o.items.map(item => (area === 'ALL' || item.product.productionArea === area) ? { ...item, status: ItemStatus.READY } : item); const allReady = newItems.every(item => item.status === ItemStatus.READY); const updates: any = { items: newItems }; if (allReady) { updates.status = OrderStatus.READY; updates.readyAt = new Date(); playNotificationSound(); } return { ...o, ...updates }; } return o; })); };
 
-  if (isPublicMenu) {
-      const branch = branches.find(b => b.id === publicMenuBranchId);
-      const displayBranch = branch || branches[0];
-      return <PublicMenu products={products} branch={displayBranch} />;
-  }
-
-  if (!user) {
-    return <Login onLogin={handleLogin} users={users} />;
-  }
-
-  const renderView = () => {
-    switch (currentView) {
-      case 'dashboard':
-        return <Dashboard orders={branchOrders} activeSession={activeSession} registers={branchRegisters} onOpenRegister={handleOpenRegister} onCloseRegister={handleCloseRegister} currentUser={user!} />;
-      case 'pos':
-        return <POSView products={products} onProcessPayment={handleProcessPayment} onSendOrder={handleSendOrder} onCancelOrder={handleCancelOrder} customers={customers} selectedTable={selectedTable} onSelectTable={handleSelectTable} onChangeTable={handleChangeTable} tables={branchTables} isRegisterOpen={!!activeSession} activeRegisterName={registers.find(r => r.id === activeSession?.registerId)?.name} orders={branchOrders} taxRate={taxRate} userRole={user!.role} loyaltyConfig={loyaltyConfig} onAddCustomer={handleAddCustomer} onUpdateCustomer={handleUpdateCustomer} />;
-      case 'tables':
-        return <TablesView tables={branchTables} onSelectTable={handleSelectTable} onAddTable={handleAddTable} onUpdateTable={handleUpdateTable} isRegisterOpen={!!activeSession} />;
-      case 'kds':
-        return <KDSView orders={branchOrders} onUpdateOrderStatus={handleUpdateOrderStatus} onUpdateOrderItems={handleUpdateOrderItems} userRole={user!.role} />;
-      case 'inventory':
-        return <InventoryView products={products} inventory={branchInventory} suppliers={suppliers} categories={categories} onAddProduct={handleAddProduct} onUpdateProduct={handleUpdateProduct} onAddInventory={handleAddInventory} onUpdateInventory={handleUpdateInventory} onAddSupplier={handleAddSupplier} onUpdateSupplier={handleUpdateSupplier} />;
-      case 'customers':
-        return <CustomersView customers={customers} onAddCustomer={handleAddCustomer} onUpdateCustomer={handleUpdateCustomer} />;
-      case 'expenses':
-        return <ExpensesView expenses={branchExpenses} onAddExpense={handleAddExpense} onUpdateExpense={handleUpdateExpense} onDeleteExpense={handleDeleteExpense} />;
-      case 'orders':
-        return <OrdersHistoryView orders={branchOrders} />;
-      case 'reports':
-        return <ReportsView orders={branchOrders} expenses={branchExpenses} />;
-      case 'qr-menu':
-        return <QrMenuView products={products} currentBranch={branches.find(b => b.id === currentBranchId)} />;
-      case 'settings':
-        return <SettingsView loyaltyConfig={loyaltyConfig} onUpdateLoyalty={setLoyaltyConfig} users={users} onAddUser={handleAddUser} onUpdateUser={handleUpdateUser} registers={registers} onAddRegister={handleAddRegister} onUpdateRegister={handleUpdateRegister} onDeleteRegister={handleDeleteRegister} taxRate={taxRate} onUpdateTax={setTaxRate} branches={branches} currentBranchId={currentBranchId} onAddBranch={handleAddBranch} onUpdateBranch={handleUpdateBranch} onChangeBranch={handleChangeBranch} userRole={user!.role} categories={categories} onAddCategory={handleAddCategory} onUpdateCategory={handleUpdateCategory} onDeleteCategory={handleDeleteCategory} />;
-      default:
-        return <div>En Construcción</div>;
-    }
-  };
+  if (isPublicMenu) return <PublicMenu products={products} branch={branches.find(b => b.id === publicMenuBranchId) || branches[0]} />;
+  if (!user) return <Login onLogin={handleLogin} users={users} />;
 
   return (
     <div className="flex h-screen bg-slate-100 font-sans overflow-hidden">
-      <Sidebar 
-        currentView={currentView} 
-        onChangeView={(view) => { setCurrentView(view); if (view !== 'pos') setSelectedTable(undefined); }} 
-        onLogout={handleLogout} userRole={user.role} branches={branches} currentBranchId={currentBranchId} onBranchChange={handleChangeBranch}
-      />
+      <Sidebar currentView={currentView} onChangeView={(view) => { setCurrentView(view); if (view !== 'pos') setSelectedTable(undefined); }} onLogout={handleLogout} userRole={user.role} branches={branches} currentBranchId={currentBranchId} onBranchChange={setCurrentBranchId} />
       <main className="flex-1 flex flex-col h-full w-full overflow-hidden pb-16 md:pb-0 relative">
-        <div className="md:hidden bg-slate-900 text-white p-4 flex items-center justify-between shadow-md z-20 shrink-0 print:hidden">
+        <div className="md:hidden bg-slate-900 text-white p-4 flex items-center justify-between shadow-md z-20 shrink-0">
              <div className="flex items-center gap-3">
-                <div className="bg-brand-600 p-2 rounded-lg">
-                    <ChefHat size={20} className="text-white" />
-                </div>
-                <div>
-                    <h1 className="text-lg font-bold tracking-tight leading-none">GastroOS</h1>
-                    <div className="relative inline-block mt-1">
-                        <select 
-                            value={currentBranchId}
-                            onChange={(e) => handleChangeBranch(e.target.value)}
-                            className="bg-transparent text-[10px] uppercase font-bold text-slate-400 appearance-none pr-4 outline-none"
-                        >
-                            {branches.map(b => (
-                                <option key={b.id} value={b.id} className="text-slate-900">{b.name}</option>
-                            ))}
-                        </select>
-                        <ChevronDown size={10} className="absolute right-0 top-0.5 text-slate-400 pointer-events-none" />
-                    </div>
-                </div>
+                <div className="bg-brand-600 p-2 rounded-lg"><ChefHat size={20} className="text-white" /></div>
+                <div><h1 className="text-lg font-bold tracking-tight leading-none">GastroOS</h1><p className="text-[9px] uppercase font-bold text-slate-400 mt-1">{branches.find(b => b.id === currentBranchId)?.name}</p></div>
              </div>
-             
-             <button 
-                onClick={handleLogout}
-                className="bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white p-2.5 rounded-xl transition-all flex items-center gap-2"
-                title="Cerrar Sesión"
-             >
-                <LogOut size={18} />
-                <span className="text-xs font-bold hidden sm:inline">Cerrar Sesión</span>
-             </button>
+             <button onClick={handleLogout} className="bg-red-500/20 text-red-400 p-2.5 rounded-xl"><LogOut size={18} /></button>
         </div>
         <div className="flex-1 overflow-hidden relative w-full">
-            {renderView()}
+            {currentView === 'dashboard' && <Dashboard orders={branchOrders} activeSession={activeSession} registers={branchRegisters} onOpenRegister={handleOpenRegister} onCloseRegister={handleCloseRegister} currentUser={user!} />}
+            {currentView === 'pos' && <POSView products={products} inventory={branchInventory} onProcessPayment={handleProcessPayment} onSendOrder={handleSendOrder} onCancelOrder={confirmAction} customers={customers} selectedTable={selectedTable} onSelectTable={setSelectedTable} onChangeTable={() => {}} tables={branchTables} isRegisterOpen={!!activeSession} activeRegisterName={registers.find(r => r.id === activeSession?.registerId)?.name} orders={branchOrders} taxRate={taxRate} userRole={user!.role} loyaltyConfig={loyaltyConfig} onAddCustomer={handleAddCustomer} onUpdateCustomer={handleUpdateCustomer} />}
+            {currentView === 'tables' && <TablesView tables={branchTables} onSelectTable={(t) => { setSelectedTable(t); setCurrentView('pos'); }} onAddTable={handleAddTable} onUpdateTable={handleUpdateTable} isRegisterOpen={!!activeSession} />}
+            {currentView === 'kds' && <KDSView orders={branchOrders} onUpdateOrderStatus={handleUpdateOrderStatus} onUpdateOrderItems={handleUpdateOrderItems} userRole={user!.role} />}
+            {currentView === 'inventory' && <InventoryView products={products} inventory={branchInventory} suppliers={suppliers} categories={categories} onAddProduct={handleAddProduct} onUpdateProduct={handleUpdateProduct} onAddInventory={handleAddInventory} onUpdateInventory={handleUpdateInventory} onAddSupplier={handleAddSupplier} onUpdateSupplier={handleUpdateSupplier} />}
+            {currentView === 'customers' && <CustomersView customers={customers} onAddCustomer={handleAddCustomer} onUpdateCustomer={handleUpdateCustomer} />}
+            {currentView === 'expenses' && <ExpensesView expenses={branchExpenses} onAddExpense={handleAddExpense} onUpdateExpense={handleUpdateExpense} onDeleteExpense={confirmAction} />}
+            {currentView === 'orders' && <OrdersHistoryView orders={branchOrders} />}
+            {currentView === 'reports' && <ReportsView orders={branchOrders} expenses={branchExpenses} />}
+            {currentView === 'qr-menu' && <QrMenuView products={products} currentBranch={branches.find(b => b.id === currentBranchId)} />}
+            {currentView === 'settings' && <SettingsView loyaltyConfig={loyaltyConfig} onUpdateLoyalty={setLoyaltyConfig} users={users} onAddUser={handleAddUser} onUpdateUser={handleUpdateUser} registers={registers} onAddRegister={handleAddRegister} onUpdateRegister={handleUpdateRegister} onDeleteRegister={handleDeleteRegister} taxRate={taxRate} onUpdateTax={setTaxRate} branches={branches} currentBranchId={currentBranchId} onAddBranch={handleAddBranch} onUpdateBranch={handleUpdateBranch} onChangeBranch={setCurrentBranchId} userRole={user!.role} categories={categories} onAddCategory={handleAddCategory} onUpdateCategory={handleUpdateCategory} onDeleteCategory={handleDeleteCategory} />}
         </div>
       </main>
     </div>
