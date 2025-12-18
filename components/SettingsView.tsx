@@ -157,7 +157,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   const toggleUserStatus = async (user: UserType) => {
       if (onUpdateUser) {
-          const action = user.isActive ? 'desactivar' : 'activar';
           const confirmMsg = user.isActive 
             ? `¿Estás seguro de desactivar a ${user.name}? Se moverá a la papelera.` 
             : `¿Estás seguro de restaurar a ${user.name}?`;
@@ -404,7 +403,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   <div className="flex gap-2">
                     <button 
                         onClick={() => setShowBranchTrash(!showBranchTrash)}
-                        className={`px-4 py-2.5 rounded-xl text-sm font-bold flex items-center border transition-all ${
+                        className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center border transition-all ${
                             showBranchTrash 
                             ? 'bg-red-50 text-red-600 border-red-200' 
                             : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
@@ -440,7 +439,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       branches.filter(b => showBranchTrash ? !b.isActive : b.isActive).map(branch => (
                           <div key={branch.id} className={`bg-white rounded-2xl shadow-sm border transition-all overflow-hidden group relative ${branch.id === currentBranchId ? 'border-brand-500 ring-2 ring-brand-100' : 'border-slate-100 hover:border-brand-200 hover:shadow-md'} ${!branch.isActive && 'opacity-70'}`}>
                               
-                              {/* Banner simulado con logo */}
                               <div className="h-24 bg-gradient-to-r from-slate-100 to-slate-200 relative z-10">
                                   <div className={`absolute -bottom-6 left-6 w-16 h-16 rounded-xl border-4 border-white bg-white shadow-md overflow-hidden ${!branch.isActive && 'grayscale'}`}>
                                     {branch.logoUrl ? (
@@ -452,7 +450,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                     )}
                                   </div>
                                   
-                                  {/* Actions Top Right */}
                                   <div className="absolute top-3 right-3 flex gap-2">
                                     {canManageBranches && !showBranchTrash && (
                                         <button 
@@ -510,7 +507,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                 </div>
                               </div>
 
-                              {/* Decorative blob */}
                               <div className={`absolute -right-6 -bottom-6 w-24 h-24 rounded-full opacity-10 pointer-events-none ${branch.isActive ? (branch.id === currentBranchId ? 'bg-brand-500' : 'bg-slate-400') : 'bg-red-500'}`}></div>
                           </div>
                       ))
@@ -581,11 +577,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       {/* TEAM TAB */}
       {activeTab === 'team' && (
         <div className="animate-in fade-in slide-in-from-bottom-4">
-             {/* Header and Trash button */}
              <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h3 className="text-lg font-bold text-slate-800">Lista de Empleados</h3>
-                    <p className="text-sm text-slate-500">Gestiona usuarios y permisos de acceso</p>
+                    <h3 className="text-lg font-bold text-slate-800">
+                        {showUserTrash ? 'Papelera de Empleados' : 'Lista de Empleados'}
+                    </h3>
+                    <p className="text-sm text-slate-500">
+                        {showUserTrash ? 'Restaura empleados inactivos' : 'Gestiona usuarios y permisos de acceso'}
+                    </p>
                 </div>
                 <div className="flex gap-2">
                     <button 
@@ -618,12 +617,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     <div key={user.id} className={`bg-white p-5 rounded-2xl shadow-sm border transition-all relative overflow-hidden group ${user.isActive ? 'border-slate-100 hover:border-brand-200' : 'border-red-100 opacity-75'}`}>
                         <div className="flex justify-between items-start mb-4 relative z-10">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center font-bold text-slate-600">
+                                <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center font-bold text-slate-600">
                                     {user.name.charAt(0)}
                                 </div>
                                 <div>
                                     <div className="font-bold text-slate-800">{user.name}</div>
-                                    <div className="text-xs text-slate-500">{user.role.replace('_', ' ')}</div>
+                                    <div className="text-xs font-bold px-2 py-0.5 rounded-full inline-block mt-1 bg-slate-100 text-slate-500 uppercase">
+                                        {user.role.replace('_', ' ')}
+                                    </div>
                                 </div>
                             </div>
                             <div className="flex gap-1">
@@ -645,10 +646,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                             <p className="flex items-center"><Store size={14} className="mr-2 text-slate-400"/> {branches.find(b => b.id === user.branchId)?.name || 'Todas'}</p>
                         </div>
                         
-                        {/* Decorative blob */}
                         <div className={`absolute -right-6 -bottom-6 w-24 h-24 rounded-full opacity-10 pointer-events-none ${user.isActive ? 'bg-brand-500' : 'bg-red-500'}`}></div>
                     </div>
                 ))}
+                {users.filter(u => showUserTrash ? !u.isActive : u.isActive).length === 0 && (
+                    <div className="col-span-full py-12 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
+                        <Users size={32} className="mx-auto mb-2 opacity-50"/>
+                        <p>{showUserTrash ? 'La papelera de equipo está vacía.' : 'No hay empleados activos.'}</p>
+                    </div>
+                )}
             </div>
         </div>
       )}
@@ -733,7 +739,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                               </p>
                           </div>
 
-                          {/* Decorative blob */}
                           <div className={`absolute -right-6 -bottom-6 w-24 h-24 rounded-full opacity-10 pointer-events-none ${reg.isActive ? (reg.isOpen ? 'bg-green-500' : 'bg-slate-500') : 'bg-red-500'}`}></div>
                       </div>
                   ))}
@@ -821,7 +826,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                               </p>
                           </div>
 
-                          {/* Decorative blob */}
                           <div className={`absolute -right-6 -bottom-6 w-24 h-24 rounded-full opacity-10 pointer-events-none ${cat.isActive ? 'bg-brand-500' : 'bg-red-500'}`}></div>
                       </div>
                   ))}
