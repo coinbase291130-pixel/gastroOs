@@ -61,6 +61,9 @@ export const POSView: React.FC<POSViewProps> = ({
   const activeCustomers = customers.filter(c => c.isActive);
   const POINTS_VALUE_RATIO = 0.01; 
 
+  // Orden para pagar desde la lista de "En Curso"
+  const [orderToPay, setOrderToPay] = useState<Order | null>(null);
+
   // --- LÓGICA DE STOCK DINÁMICO ---
   const currentCartInventoryConsumption = useMemo(() => {
     const consumption: Record<string, number> = {};
@@ -179,7 +182,7 @@ export const POSView: React.FC<POSViewProps> = ({
     return orders.filter(o => 
         o.status !== OrderStatus.COMPLETED && 
         o.status !== OrderStatus.CANCELLED
-    );
+    ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [orders]);
 
   const tableBillTotal = tableOrders.reduce((sum, o) => sum + o.total, 0);
@@ -207,7 +210,6 @@ export const POSView: React.FC<POSViewProps> = ({
       return [...prev, { cartId: Math.random().toString(36).substr(2, 9), product, quantity: 1, status: ItemStatus.PENDING }];
     });
     setLastAddedTrigger(d => d + 1);
-    // REMOVED: notify(`+1 ${product.name}`, 'success'); - Mensaje deshabilitado a petición
     if (activeTab === 'pending') setActiveTab('cart');
   };
 
@@ -238,19 +240,28 @@ export const POSView: React.FC<POSViewProps> = ({
   const currentCartSubtotal = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
   const currentCartTax = currentCartSubtotal * taxRate; 
   const currentCartTotal = currentCartSubtotal + currentCartTax;
-  const rawGrandTotal = (orderType === OrderType.DINE_IN ? tableBillTotal : 0) + currentCartTotal;
+  
+  // Si estamos pagando una orden existente desde la lista de pendientes
+  const activeGrandTotal = orderToPay ? orderToPay.total : (orderType === OrderType.DINE_IN ? tableBillTotal : 0) + currentCartTotal;
   const pointsDiscount = redeemedPoints * POINTS_VALUE_RATIO;
-  const grandTotal = Math.max(0, rawGrandTotal - pointsDiscount);
+  const grandTotal = Math.max(0, activeGrandTotal - pointsDiscount);
   const cartItemCount = cart.reduce((sum, i) => sum + i.quantity, 0);
 
-  // Cálculo de cambio para efectivo
+  // Cambio para efectivo
   const cashChange = useMemo(() => {
     const tendered = parseFloat(cashTendered) || 0;
     return tendered - grandTotal;
   }, [cashTendered, grandTotal]);
 
-  const openPaymentModal = () => {
+  const openPaymentModal = (existingOrder?: Order) => {
     if (!isRegisterOpen) return;
+    
+    if (existingOrder) {
+        setOrderToPay(existingOrder);
+        setIsPaymentModalOpen(true);
+        return;
+    }
+
     if (orderType === OrderType.DINE_IN && !selectedTable) {
         setIsTableModalOpen(true);
         return;
@@ -276,7 +287,7 @@ export const POSView: React.FC<POSViewProps> = ({
     setPaymentMethod(null);
     setCashTendered('');
     setActiveTab('cart');
-    // IMPORTANTE: Si es mesa, liberar la mesa para que vuelva a estar disponible
+    setOrderToPay(null);
     if (selectedTable) {
         onSelectTable(undefined);
     }
@@ -288,9 +299,15 @@ export const POSView: React.FC<POSViewProps> = ({
           notify("Monto recibido insuficiente", "error");
           return;
       }
-      onProcessPayment(cart, grandTotal, orderType, paymentMethod, selectedCustomer ? {...selectedCustomer, address: deliveryAddress} : undefined);
       
-      // Limpieza total tras el pago (Cierra mesa o limpia pedido rápido)
+      if (orderToPay) {
+          // Pago de una orden que ya existía en el sistema
+          onProcessPayment([], grandTotal, orderToPay.type, paymentMethod, undefined); 
+      } else {
+          // Pago de un carrito nuevo o cuenta de mesa
+          onProcessPayment(cart, grandTotal, orderType, paymentMethod, selectedCustomer ? {...selectedCustomer, address: deliveryAddress} : undefined);
+      }
+      
       resetPOSState();
   };
 
@@ -311,7 +328,6 @@ export const POSView: React.FC<POSViewProps> = ({
           setIsMobileCartOpen(false);
           setActiveTab('bill');
       } else {
-          // Llevar o Domicilio: Limpieza total para nueva venta
           resetPOSState();
       }
   };
@@ -323,6 +339,11 @@ export const POSView: React.FC<POSViewProps> = ({
           case OrderStatus.ON_WAY: return <Truck size={14} className="text-blue-500" />;
           default: return <Clock size={14} className="text-slate-400" />;
       }
+  };
+
+  const getElapsedTime = (createdAt: Date) => {
+      const mins = Math.floor((new Date().getTime() - new Date(createdAt).getTime()) / 60000);
+      return `${mins}m`;
   };
 
   if (!isRegisterOpen) {
@@ -416,7 +437,7 @@ export const POSView: React.FC<POSViewProps> = ({
       </div>
 
       {/* BOTÓN FLOTANTE MÓVIL */}
-      {!isMobileCartOpen && (cartItemCount > 0 || tableBillTotal > 0) && (
+      {!isMobileCartOpen && (cartItemCount > 0 || tableBillTotal > 0 || allActiveOrders.length > 0) && (
         <div className="md:hidden fixed bottom-24 left-1/2 -translate-x-1/2 z-[70] w-full px-4 animate-in slide-in-from-bottom duration-300">
           <button 
             onClick={() => setIsMobileCartOpen(true)} 
@@ -429,7 +450,7 @@ export const POSView: React.FC<POSViewProps> = ({
               </div>
               <span className="font-black text-lg tabular-nums">${grandTotal.toFixed(2)}</span>
             </div>
-            <div className="flex items-center font-black text-xs uppercase tracking-widest gap-1">Gestionar Pedido <ChevronRight size={18} /></div>
+            <div className="flex items-center font-black text-xs uppercase tracking-widest gap-1">Ver Pedidos <ChevronRight size={18} /></div>
           </button>
         </div>
       )}
@@ -468,7 +489,6 @@ export const POSView: React.FC<POSViewProps> = ({
                       <button onClick={() => setIsNewCustomerModalOpen(true)} className="bg-slate-800 text-white p-2.5 rounded-lg active:scale-95 transition-transform"><Plus size={16} /></button>
                   </div>
 
-                  {/* SOLICITUD DE DIRECCIÓN PARA DOMICILIOS */}
                   {orderType === OrderType.DELIVERY && (
                     <div className="bg-blue-50 p-3 rounded-xl border border-blue-100 animate-in slide-in-from-top-1">
                         <label className="block text-[10px] font-black text-blue-700 uppercase mb-1 flex items-center gap-1">
@@ -505,7 +525,7 @@ export const POSView: React.FC<POSViewProps> = ({
                               </div>
                               <button 
                                   onClick={() => {
-                                      const maxByBill = Math.floor(rawGrandTotal / POINTS_VALUE_RATIO);
+                                      const maxByBill = Math.floor(activeGrandTotal / POINTS_VALUE_RATIO);
                                       setRedeemedPoints(Math.min(selectedCustomer.points, maxByBill));
                                       notify("Puntos aplicados", "success");
                                   }}
@@ -530,7 +550,7 @@ export const POSView: React.FC<POSViewProps> = ({
                 cart.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-slate-300 py-20">
                       <ShoppingBag size={48} className="opacity-20 mb-4" />
-                      <p className="font-black uppercase text-xs tracking-widest">Pedido Vacío</p>
+                      <p className="font-black uppercase text-xs tracking-widest">Carrito Vacío</p>
                   </div>
                 ) : cart.map(item => (
                   <div key={item.cartId} className="flex justify-between items-center bg-white border border-slate-100 p-3 rounded-2xl shadow-sm">
@@ -570,21 +590,50 @@ export const POSView: React.FC<POSViewProps> = ({
                   ))
             ) : (
                   allActiveOrders.map(order => (
-                      <div key={order.id} className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm mb-3">
+                      <div key={order.id} className="bg-white border border-slate-200 p-4 rounded-2xl shadow-md mb-4 relative overflow-hidden group">
+                          {/* Indicador de Tipo Lateral */}
+                          <div className={`absolute left-0 top-0 bottom-0 w-1 ${order.type === OrderType.DELIVERY ? 'bg-blue-600' : order.type === OrderType.DINE_IN ? 'bg-emerald-600' : 'bg-slate-800'}`}></div>
+                          
                           <div className="flex justify-between items-start mb-3">
-                              <div className="flex items-center gap-2">
-                                  <div className={`p-2 rounded-lg ${order.type === OrderType.DELIVERY ? 'bg-blue-50 text-blue-600' : order.type === OrderType.DINE_IN ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-600'}`}>
-                                      {order.type === OrderType.DELIVERY ? <Truck size={16} /> : order.type === OrderType.DINE_IN ? <Grid3X3 size={16} /> : <ShoppingBag size={16} />}
+                              <div className="flex items-center gap-3">
+                                  <div className={`p-2 rounded-xl ${order.type === OrderType.DELIVERY ? 'bg-blue-50 text-blue-600' : order.type === OrderType.DINE_IN ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-600'}`}>
+                                      {order.type === OrderType.DELIVERY ? <Truck size={18} /> : order.type === OrderType.DINE_IN ? <Grid3X3 size={18} /> : <ShoppingBag size={18} />}
                                   </div>
                                   <div>
-                                      <div className="text-[10px] font-black uppercase text-slate-400">#{order.id.slice(0, 5)}</div>
-                                      <div className="text-xs font-bold text-slate-800">{order.type === OrderType.DELIVERY ? 'Domicilio' : order.type === OrderType.DINE_IN ? `Mesa ${order.tableId?.replace(/\D/g, '')}` : 'Llevar'}</div>
+                                      <div className="flex items-center gap-2">
+                                          <span className="text-[10px] font-black uppercase text-slate-400">#{order.id.slice(0, 5)}</span>
+                                          <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100 flex items-center gap-1"><Clock size={10}/> {getElapsedTime(order.createdAt)}</span>
+                                      </div>
+                                      <div className="text-sm font-black text-slate-800 uppercase tracking-tighter">{order.type === OrderType.DELIVERY ? 'Domicilio' : order.type === OrderType.DINE_IN ? `Mesa ${order.tableId?.replace(/\D/g, '')}` : 'Llevar / Mostrador'}</div>
                                   </div>
                               </div>
-                              <div className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase flex items-center gap-1.5 ${order.status === OrderStatus.READY ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-orange-50 text-orange-600 border border-orange-100'}`}>
+                              <div className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase flex items-center gap-1.5 shadow-sm border ${order.status === OrderStatus.READY ? 'bg-emerald-500 text-white border-emerald-400' : 'bg-orange-50 text-orange-600 border-orange-100'}`}>
                                     {getStatusIcon(order.status)}
                                     {order.status}
                               </div>
+                          </div>
+
+                          {/* Detalle de productos - VISIBILIDAD SIEMPRE */}
+                          <div className="space-y-1 mb-3 bg-slate-50/50 p-2 rounded-xl border border-slate-100">
+                             {order.items.map((item, idx) => (
+                                 <div key={idx} className="flex justify-between text-[10px] font-bold uppercase text-slate-600">
+                                     <span><strong className="text-brand-600 mr-1">{item.quantity}x</strong> {item.product.name}</span>
+                                     <span className="text-slate-400 font-medium">${(item.product.price * item.quantity).toFixed(2)}</span>
+                                 </div>
+                             ))}
+                          </div>
+
+                          <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-50">
+                              <div className="text-sm font-black text-slate-900 tabular-nums">Total: ${order.total.toFixed(2)}</div>
+                              {/* El botón cobrar solo se muestra para pedidos en mesa, pues llevar y domicilio ya se asumen cobrados */}
+                              {order.type === OrderType.DINE_IN && (
+                                <button 
+                                    onClick={() => openPaymentModal(order)}
+                                    className="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-md flex items-center gap-2"
+                                >
+                                    <ReceiptText size={14}/> Cobrar
+                                </button>
+                              )}
                           </div>
                       </div>
                   ))
@@ -615,7 +664,7 @@ export const POSView: React.FC<POSViewProps> = ({
                     )}
                     <button 
                         disabled={(grandTotal === 0 && discountAmount === 0) || (orderType === OrderType.DINE_IN && !selectedTable)}
-                        onClick={openPaymentModal}
+                        onClick={() => openPaymentModal()}
                         className={`w-full h-14 rounded-2xl font-black text-base uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all ${orderType === OrderType.DELIVERY ? 'bg-blue-600 text-white' : 'bg-brand-600 text-white disabled:bg-slate-200 disabled:text-slate-400'}`}
                     >
                         {orderType === OrderType.DELIVERY ? <Truck size={22} /> : orderType === OrderType.TAKEAWAY ? <ShoppingBag size={22} /> : <ReceiptText size={22} />}
@@ -630,7 +679,7 @@ export const POSView: React.FC<POSViewProps> = ({
       {isPaymentModalOpen && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-3 backdrop-blur-md">
           <div className="bg-white rounded-[2.5rem] p-6 w-full max-w-md shadow-2xl animate-in zoom-in duration-200 overflow-y-auto max-h-[90vh]">
-            <h3 className="text-xl font-black mb-5 text-center text-slate-800 uppercase tracking-tighter">Confirmar Pago</h3>
+            <h3 className="text-xl font-black mb-5 text-center text-slate-800 uppercase tracking-tighter">{orderToPay ? `Cobrar Orden #${orderToPay.id.slice(0,5)}` : 'Confirmar Pago'}</h3>
             <div className="mb-6 text-center bg-slate-50 p-6 rounded-3xl border border-slate-100 shadow-inner">
                 <p className="text-slate-500 font-black uppercase text-[10px] mb-1 tracking-widest">Monto a Cobrar</p>
                 <p className="text-4xl font-black text-slate-900 tracking-tighter tabular-nums">${grandTotal.toFixed(2)}</p>
@@ -715,7 +764,7 @@ export const POSView: React.FC<POSViewProps> = ({
                     </div>
                 </div>
             )}
-            {!paymentMethod && <button onClick={() => setIsPaymentModalOpen(false)} className="w-full mt-5 py-3 text-slate-400 font-black text-[10px] uppercase tracking-[0.2em] hover:text-slate-600">Cancelar</button>}
+            {!paymentMethod && <button onClick={() => {setIsPaymentModalOpen(false); setOrderToPay(null);}} className="w-full mt-5 py-3 text-slate-400 font-black text-[10px] uppercase tracking-[0.2em] hover:text-slate-600">Cancelar</button>}
           </div>
         </div>
       )}
