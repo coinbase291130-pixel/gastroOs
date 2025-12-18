@@ -61,8 +61,7 @@ export const POSView: React.FC<POSViewProps> = ({
   const activeCustomers = customers.filter(c => c.isActive);
   const POINTS_VALUE_RATIO = 0.01; 
 
-  // --- LÓGICA DE STOCK DINÁMICO (RESTANDO CARRITO ACTUAL) ---
-  
+  // --- LÓGICA DE STOCK DINÁMICO ---
   const currentCartInventoryConsumption = useMemo(() => {
     const consumption: Record<string, number> = {};
     const processProduct = (product: Product, qty: number) => {
@@ -385,7 +384,27 @@ export const POSView: React.FC<POSViewProps> = ({
         </div>
       </div>
 
-      <div className={`fixed md:relative inset-x-0 top-0 bottom-0 md:inset-auto md:right-0 z-[60] md:z-40 bg-white shadow-2xl flex flex-col h-full md:w-[400px] lg:w-[450px] md:translate-x-0 transition-transform duration-300 ease-in-out border-l border-slate-100 ${isMobileCartOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+      {/* BOTÓN FLOTANTE MÓVIL (Z-INDEX Y POSICIÓN ARREGLADOS) */}
+      {!isMobileCartOpen && (cartItemCount > 0 || tableBillTotal > 0 || allActiveOrders.length > 0) && (
+        <div className="md:hidden fixed bottom-24 left-1/2 -translate-x-1/2 z-[70] w-full px-4 animate-in slide-in-from-bottom duration-300">
+          <button 
+            onClick={() => setIsMobileCartOpen(true)} 
+            className={`w-full bg-brand-600 text-white h-14 rounded-2xl shadow-2xl flex justify-between items-center px-5 ring-4 ring-white/20 active:scale-95 transition-all ${lastAddedTrigger > 0 ? 'animate-bounce' : ''}`}
+            key={lastAddedTrigger}
+          >
+            <div className="flex items-center gap-3">
+              <div className="bg-white/20 w-8 h-8 flex items-center justify-center rounded-xl font-black text-xs">
+                {activeTab === 'pending' ? allActiveOrders.length : (orderType === OrderType.DINE_IN && activeTab === 'bill' ? tableOrders.length : cartItemCount)}
+              </div>
+              <span className="font-black text-lg tabular-nums">${grandTotal.toFixed(2)}</span>
+            </div>
+            <div className="flex items-center font-black text-xs uppercase tracking-widest gap-1">Gestionar Pedido <ChevronRight size={18} /></div>
+          </button>
+        </div>
+      )}
+
+      {/* SECCIÓN DERECHA: DRAWER (Z-INDEX ARREGLADO) */}
+      <div className={`fixed md:relative inset-x-0 top-0 bottom-0 md:inset-auto md:right-0 z-[80] md:z-40 bg-white shadow-2xl flex flex-col h-full md:w-[400px] lg:w-[450px] md:translate-x-0 transition-transform duration-300 ease-in-out border-l border-slate-100 ${isMobileCartOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="flex-none p-4 md:p-5 border-b border-slate-100 bg-white sticky top-0 z-20">
             <div className="flex items-center gap-3 mb-3">
                 <button onClick={() => setIsMobileCartOpen(false)} className="md:hidden p-2 -ml-2 text-slate-500 bg-slate-100 rounded-xl"><ChevronLeft size={24} /></button>
@@ -403,6 +422,21 @@ export const POSView: React.FC<POSViewProps> = ({
                 <button onClick={() => setActiveTab('pending')} className={`flex-1 py-2 text-[10px] font-black uppercase rounded-lg transition-all ${activeTab === 'pending' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500'}`}>En Curso ({allActiveOrders.length})</button>
             </div>
         </div>
+
+        {activeTab === 'cart' && (
+            <div className="flex-none px-4 py-3 border-b border-slate-50 bg-white space-y-3">
+                <div className="flex items-center gap-2">
+                    <div className="flex-1 flex items-center space-x-2 text-xs bg-slate-50 rounded-lg px-2.5 py-2 border border-slate-100">
+                      <User size={14} className="text-slate-400" />
+                      <select className="w-full bg-transparent border-none focus:ring-0 text-slate-700 font-bold outline-none text-[10px] uppercase" onChange={(e) => setSelectedCustomer(activeCustomers.find(c => c.id === e.target.value))} value={selectedCustomer?.id || ''}>
+                        <option value="">Cliente Ocasional</option>
+                        {activeCustomers.map(c => <option key={c.id} value={c.id}>{c.name} ({c.points} pts)</option>)}
+                      </select>
+                    </div>
+                    <button onClick={() => setIsNewCustomerModalOpen(true)} className="bg-slate-800 text-white p-2.5 rounded-lg active:scale-95 transition-transform"><Plus size={16} /></button>
+                </div>
+            </div>
+        )}
 
         <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-white custom-scrollbar pb-10">
           {activeTab === 'cart' ? (
@@ -437,6 +471,14 @@ export const POSView: React.FC<POSViewProps> = ({
                                 {getStatusIcon(order.status)} {order.status}
                             </div>
                         </div>
+                        <div className="space-y-2">
+                            {order.items.map((item, idx) => (
+                                <div key={idx} className="flex justify-between text-[11px] font-medium items-center">
+                                    <span className="text-slate-700 flex-1 truncate pr-2 uppercase"><strong className="text-brand-600 mr-1">{item.quantity}x</strong> {item.product.name}</span>
+                                    <span className="font-black text-slate-900 tabular-nums">${(item.product.price * item.quantity).toFixed(2)}</span>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 ))
           ) : (
@@ -452,6 +494,18 @@ export const POSView: React.FC<POSViewProps> = ({
                                     <div className="text-xs font-bold text-slate-800">{order.type === OrderType.DELIVERY ? 'Domicilio' : order.type === OrderType.DINE_IN ? `Mesa ${order.tableId?.replace(/\D/g, '')}` : 'Llevar'}</div>
                                 </div>
                             </div>
+                            <div className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase flex items-center gap-1.5 ${order.status === OrderStatus.READY ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-orange-50 text-orange-600 border border-orange-100'}`}>
+                                  {getStatusIcon(order.status)}
+                                  {order.status}
+                            </div>
+                        </div>
+                        <div className="space-y-1 mt-3 pt-3 border-t border-slate-50">
+                              {order.items.slice(0, 3).map((item, idx) => (
+                                  <div key={idx} className="flex justify-between text-[11px] font-medium text-slate-600">
+                                      <span className="truncate pr-4 uppercase"><strong>{item.quantity}x</strong> {item.product.name}</span>
+                                      <span className="tabular-nums font-bold">${(item.product.price * item.quantity).toFixed(2)}</span>
+                                  </div>
+                              ))}
                         </div>
                     </div>
                 ))
@@ -461,6 +515,10 @@ export const POSView: React.FC<POSViewProps> = ({
         {activeTab !== 'pending' && (
             <div className="flex-none p-4 md:p-6 bg-white border-t border-slate-100 shadow-[0_-10px_30px_rgba(0,0,0,0.08)] pb-safe-bottom">
                 <div className="space-y-1.5 mb-5">
+                    <div className="flex justify-between text-[11px] text-slate-500 font-black uppercase tracking-wider">
+                        <span>{orderType === OrderType.DINE_IN ? 'Cuenta Acumulada' : 'Subtotal'}</span>
+                        <span className="tabular-nums">${(orderType === OrderType.DINE_IN ? tableBillTotal : currentCartSubtotal).toFixed(2)}</span>
+                    </div>
                     <div className="flex justify-between text-2xl font-black text-slate-900 pt-2 border-t border-slate-100 mt-2">
                         <span className="tracking-tighter uppercase">Total</span>
                         <span className="tabular-nums">${grandTotal.toFixed(2)}</span>
@@ -478,12 +536,57 @@ export const POSView: React.FC<POSViewProps> = ({
                         onClick={openPaymentModal}
                         className={`w-full h-14 rounded-2xl font-black text-base uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all ${orderType === OrderType.DELIVERY ? 'bg-blue-600 text-white' : 'bg-brand-600 text-white disabled:bg-slate-200 disabled:text-slate-400'}`}
                     >
+                        {orderType === OrderType.DELIVERY ? <Truck size={22} /> : orderType === OrderType.TAKEAWAY ? <ShoppingBag size={22} /> : <ReceiptText size={22} />}
                         <span>{orderType === OrderType.DELIVERY ? 'Pagar Envío' : orderType === OrderType.TAKEAWAY ? 'Pagar Ahora' : 'Cerrar Mesa'}</span>
                     </button>
                 </div>
             </div>
         )}
       </div>
+
+      {/* MODAL PAGO */}
+      {isPaymentModalOpen && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-3 backdrop-blur-md">
+          <div className="bg-white rounded-[2.5rem] p-6 w-full max-sm shadow-2xl animate-in zoom-in duration-200">
+            <h3 className="text-xl font-black mb-5 text-center text-slate-800 uppercase tracking-tighter">Confirmar Pago</h3>
+            <div className="mb-6 text-center bg-slate-50 p-6 rounded-3xl border border-slate-100 shadow-inner">
+                <p className="text-slate-500 font-black uppercase text-[10px] mb-1 tracking-widest">Total Final</p>
+                <p className="text-4xl font-black text-slate-900 tracking-tighter tabular-nums">${grandTotal.toFixed(2)}</p>
+            </div>
+            {!paymentMethod ? (
+                <div className="grid grid-cols-2 gap-3">
+                    {[
+                        { id: PaymentMethod.CASH, label: 'Efectivo', icon: Banknote },
+                        { id: PaymentMethod.CARD, label: 'Tarjeta', icon: CreditCard },
+                        { id: PaymentMethod.QR, label: 'QR Transfer', icon: QrCode },
+                        { id: PaymentMethod.MIXED, label: 'Dividir', icon: Users }
+                    ].map(m => (
+                        <button key={m.id} onClick={() => setPaymentMethod(m.id)} className={`flex flex-col items-center justify-center p-5 border-2 border-slate-100 rounded-2xl hover:border-brand-500 active:scale-95 transition-all group`}>
+                            <m.icon size={32} className={`mb-2 text-slate-400 group-hover:text-brand-600 transition-colors`} />
+                            <span className="font-black text-[10px] uppercase text-slate-700">{m.label}</span>
+                        </button>
+                    ))}
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    {paymentMethod === PaymentMethod.CASH && (
+                        <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200">
+                            <label className="block text-[10px] font-black text-slate-500 uppercase text-center mb-2 tracking-widest">Recibido en Efectivo</label>
+                            <input autoFocus type="number" className="w-full border-none bg-white rounded-2xl py-4 text-3xl font-black text-center shadow-inner outline-none focus:ring-2 focus:ring-brand-500 tabular-nums" value={cashTendered} onChange={e => setCashTendered(e.target.value)} placeholder="0.00" />
+                        </div>
+                    )}
+                    <div className="flex gap-3 mt-4">
+                        <button onClick={() => setPaymentMethod(null)} className="flex-1 h-14 font-black text-xs text-slate-500 uppercase tracking-widest bg-slate-100 rounded-2xl active:bg-slate-200 transition-colors">Atrás</button>
+                        <button onClick={confirmPayment} className="flex-[2] bg-emerald-600 text-white font-black h-14 rounded-2xl shadow-lg shadow-emerald-200 active:scale-95 transition-all uppercase text-xs tracking-widest">Completar</button>
+                    </div>
+                </div>
+            )}
+            {!paymentMethod && <button onClick={() => setIsPaymentModalOpen(false)} className="w-full mt-5 py-3 text-slate-400 font-black text-[10px] uppercase tracking-[0.2em] hover:text-slate-600">Cancelar Todo</button>}
+          </div>
+        </div>
+      )}
+
+      {/* MAPA DE MESAS */}
       {isTableModalOpen && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[120] p-3 backdrop-blur-md">
               <div className="bg-white rounded-[2.5rem] w-full max-w-md shadow-2xl p-6 animate-in zoom-in duration-200 flex flex-col max-h-[85dvh]">
