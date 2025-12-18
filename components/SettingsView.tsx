@@ -588,7 +588,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     <p className="text-sm text-slate-500">Gestiona usuarios y permisos de acceso</p>
                 </div>
                 <div className="flex gap-2">
-                    <button onClick={() => setShowUserTrash(!showUserTrash)} className={`px-4 py-2 rounded-lg font-bold flex items-center border transition-all ${showUserTrash ? 'bg-red-50 text-red-600 border-red-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>
+                    <button 
+                        onClick={() => setShowUserTrash(!showUserTrash)} 
+                        className={`px-4 py-2 rounded-lg font-bold flex items-center border transition-all ${
+                            showUserTrash 
+                            ? 'bg-red-50 text-red-600 border-red-200' 
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                        }`}
+                    >
+                        {showUserTrash ? <Users size={18} className="mr-2"/> : <Archive size={18} className="mr-2"/>}
                         {showUserTrash ? 'Ver Activos' : 'Papelera'}
                     </button>
                     {!showUserTrash && (
@@ -739,7 +747,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
       )}
 
-      {/* CATALOG TAB (NEW) */}
+      {/* CATALOG TAB */}
       {activeTab === 'catalog' && (
           <div className="animate-in fade-in slide-in-from-bottom-4">
                <div className="flex justify-between items-center mb-6">
