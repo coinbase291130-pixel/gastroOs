@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState } from 'react';
 import { Product, Branch } from '../types';
 import { ChefHat, Search, MapPin, Clock, Phone, ChevronRight, Info } from 'lucide-react';
@@ -37,7 +36,11 @@ export const PublicMenu: React.FC<PublicMenuProps> = ({ products, branch }) => {
             <div className="flex justify-between items-start mb-6">
                 <div className="flex items-center gap-4">
                     <div className="bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/20 shadow-xl">
-                        <ChefHat size={32} className="text-brand-500" />
+                        {branch.logoUrl ? (
+                            <img src={branch.logoUrl} alt="Logo" className="w-8 h-8 object-cover rounded-lg" />
+                        ) : (
+                            <ChefHat size={32} className="text-brand-500" />
+                        )}
                     </div>
                     <div>
                         <h1 className="text-2xl font-black tracking-tight leading-none text-white uppercase">{branch.name}</h1>
@@ -51,19 +54,19 @@ export const PublicMenu: React.FC<PublicMenuProps> = ({ products, branch }) => {
 
             {/* Info Pills */}
             <div className="flex gap-2 overflow-x-auto no-scrollbar mb-8">
-                <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2.5 rounded-full backdrop-blur-md shrink-0">
+                <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2.5 rounded-full backdrop-blur-md shrink-0" title={branch.address}>
                     <MapPin size={14} className="text-brand-500" />
-                    <span className="text-xs font-bold text-slate-300">Ubicación</span>
+                    <span className="text-xs font-bold text-slate-300 truncate max-w-[150px]">{branch.address}</span>
                 </div>
-                <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2.5 rounded-full backdrop-blur-md shrink-0">
+                <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2.5 rounded-full backdrop-blur-md shrink-0" title={branch.businessHours}>
                     <Clock size={14} className="text-brand-500" />
-                    <span className="text-xs font-bold text-slate-300">Horarios</span>
+                    <span className="text-xs font-bold text-slate-300">{branch.businessHours || 'Consultar Horario'}</span>
                 </div>
                 {branch.phone && (
-                    <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2.5 rounded-full backdrop-blur-md shrink-0">
+                    <a href={`tel:${branch.phone}`} className="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2.5 rounded-full backdrop-blur-md shrink-0">
                         <Phone size={14} className="text-brand-500" />
-                        <span className="text-xs font-bold text-slate-300">Contacto</span>
-                    </div>
+                        <span className="text-xs font-bold text-slate-300">{branch.phone}</span>
+                    </a>
                 )}
             </div>
 

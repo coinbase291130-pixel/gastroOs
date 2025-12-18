@@ -93,6 +93,7 @@ export interface Branch {
   name: string;
   address: string;
   phone?: string;
+  businessHours?: string; // Nuevo field
   isActive: boolean;
   logoUrl?: string; // Nuevo: Logo específico de la sucursal para reportes
 }

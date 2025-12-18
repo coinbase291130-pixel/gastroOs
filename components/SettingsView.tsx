@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Save, Percent, CheckCircle, Users, Monitor, Store, Gift, Plus, Trash2, Edit2, Shield, User, X, Briefcase, Upload, Image as ImageIcon, MapPin, Phone, Lock, Unlock, Ban, Wallet, Archive, RotateCcw, AlertTriangle, Key, Grid3X3, Tag } from 'lucide-react';
+import { Save, Percent, CheckCircle, Users, Monitor, Store, Gift, Plus, Trash2, Edit2, Shield, User, X, Briefcase, Upload, Image as ImageIcon, MapPin, Phone, Lock, Unlock, Ban, Wallet, Archive, RotateCcw, AlertTriangle, Key, Grid3X3, Tag, Clock } from 'lucide-react';
 import { LoyaltyConfig, User as UserType, Role, CashRegister, Branch, Category } from '../types';
 import { useNotification } from './NotificationContext';
 
@@ -86,6 +86,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [newBranchAddress, setNewBranchAddress] = useState('');
   const [newBranchPhone, setNewBranchPhone] = useState('');
   const [newBranchLogo, setNewBranchLogo] = useState('');
+  const [newBranchHours, setNewBranchHours] = useState('');
 
   const canManageBranches = userRole === Role.COMPANY_ADMIN || userRole === Role.SUPER_ADMIN;
 
@@ -283,12 +284,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           setNewBranchAddress(branch.address);
           setNewBranchPhone(branch.phone || '');
           setNewBranchLogo(branch.logoUrl || '');
+          setNewBranchHours(branch.businessHours || '');
       } else {
           setEditingBranch(null);
           setNewBranchName('');
           setNewBranchAddress('');
           setNewBranchPhone('');
           setNewBranchLogo('');
+          setNewBranchHours('');
       }
       setIsBranchModalOpen(true);
   };
@@ -309,7 +312,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               name: newBranchName,
               address: newBranchAddress,
               phone: newBranchPhone,
-              logoUrl: newBranchLogo
+              logoUrl: newBranchLogo,
+              businessHours: newBranchHours
           });
           notify('Sucursal actualizada.', 'success');
       } else {
@@ -320,7 +324,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               address: newBranchAddress,
               phone: newBranchPhone,
               isActive: true,
-              logoUrl: newBranchLogo || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=80'
+              logoUrl: newBranchLogo || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=80',
+              businessHours: newBranchHours
           };
           onAddBranch(newBranch);
           notify('Sucursal creada.', 'success');
@@ -481,6 +486,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                         </p>
                                         <p className="text-sm text-slate-500 mt-1 flex items-center gap-1">
                                             <Phone size={14} className="flex-shrink-0"/> {branch.phone || 'Sin teléfono'}
+                                        </p>
+                                        <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                                            <Clock size={12} className="flex-shrink-0"/> {branch.businessHours || 'Horario no registrado'}
                                         </p>
                                     </div>
                                 </div>
@@ -1007,12 +1015,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                           <input required type="text" className="w-full border rounded-lg p-3" value={newBranchName} onChange={e => setNewBranchName(e.target.value)} />
                       </div>
                       <div>
-                          <label className="block text-sm font-bold text-slate-700 mb-1">Dirección Física</label>
-                          <input required type="text" className="w-full border rounded-lg p-3" value={newBranchAddress} onChange={e => setNewBranchAddress(e.target.value)} />
+                          <label className="block text-sm font-bold text-slate-700 mb-1">Dirección Física / Ubicación</label>
+                          <input required type="text" className="w-full border rounded-lg p-3" value={newBranchAddress} onChange={e => setNewBranchAddress(e.target.value)} placeholder="Ej. Calle 10 # 5-20" />
                       </div>
-                      <div>
-                          <label className="block text-sm font-bold text-slate-700 mb-1">Teléfono</label>
-                          <input type="tel" className="w-full border rounded-lg p-3" value={newBranchPhone} onChange={e => setNewBranchPhone(e.target.value)} />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                              <label className="block text-sm font-bold text-slate-700 mb-1">Teléfono</label>
+                              <input type="tel" className="w-full border rounded-lg p-3" value={newBranchPhone} onChange={e => setNewBranchPhone(e.target.value)} />
+                          </div>
+                          <div>
+                              <label className="block text-sm font-bold text-slate-700 mb-1 flex items-center gap-1"><Clock size={14}/> Horarios</label>
+                              <input type="text" className="w-full border rounded-lg p-3" value={newBranchHours} onChange={e => setNewBranchHours(e.target.value)} placeholder="Ej. Lun-Vie 8am-10pm" />
+                          </div>
                       </div>
                       <button type="submit" className="w-full bg-brand-600 text-white font-bold py-3 rounded-lg mt-4 hover:bg-brand-700">Guardar Sucursal</button>
                   </form>

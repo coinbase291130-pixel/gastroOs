@@ -356,7 +356,7 @@ const App: React.FC = () => {
       case 'dashboard':
         return <Dashboard orders={branchOrders} activeSession={activeSession} registers={branchRegisters} onOpenRegister={handleOpenRegister} onCloseRegister={handleCloseRegister} currentUser={user!} />;
       case 'pos':
-        return <POSView products={products} onProcessPayment={handleProcessPayment} onSendOrder={handleSendOrder} onCancelOrder={handleCancelOrder} customers={customers} selectedTable={selectedTable} onSelectTable={handleSelectTable} onChangeTable={handleChangeTable} tables={branchTables} isRegisterOpen={!!activeSession} activeRegisterName={registers.find(r => r.id === activeSession?.registerId)?.name} orders={branchOrders} taxRate={taxRate} userRole={user!.role} loyaltyConfig={loyaltyConfig} onAddCustomer={handleAddCustomer} />;
+        return <POSView products={products} onProcessPayment={handleProcessPayment} onSendOrder={handleSendOrder} onCancelOrder={handleCancelOrder} customers={customers} selectedTable={selectedTable} onSelectTable={handleSelectTable} onChangeTable={handleChangeTable} tables={branchTables} isRegisterOpen={!!activeSession} activeRegisterName={registers.find(r => r.id === activeSession?.registerId)?.name} orders={branchOrders} taxRate={taxRate} userRole={user!.role} loyaltyConfig={loyaltyConfig} onAddCustomer={handleAddCustomer} onUpdateCustomer={handleUpdateCustomer} />;
       case 'tables':
         return <TablesView tables={branchTables} onSelectTable={handleSelectTable} onAddTable={handleAddTable} onUpdateTable={handleUpdateTable} isRegisterOpen={!!activeSession} />;
       case 'kds':
@@ -410,7 +410,6 @@ const App: React.FC = () => {
                 </div>
              </div>
              
-             {/* Logout Button added to Mobile Top Header */}
              <button 
                 onClick={handleLogout}
                 className="bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white p-2.5 rounded-xl transition-all flex items-center gap-2"
