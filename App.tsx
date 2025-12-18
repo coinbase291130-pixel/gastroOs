@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { MOCK_BRANCHES, MOCK_COMPANY, MOCK_CUSTOMERS, MOCK_INVENTORY, MOCK_PRODUCTS, MOCK_USERS, MOCK_TABLES, MOCK_REGISTERS, MOCK_SUPPLIERS, MOCK_EXPENSES, MOCK_CATEGORIES } from './constants';
 import { CartItem, Customer, Order, OrderStatus, OrderType, PaymentMethod, Role, User, Table, TableStatus, Product, LoyaltyConfig, CashRegister, RegisterSession, InventoryItem, ProductionArea, ItemStatus, Supplier, Expense, Branch, Category } from './types';
@@ -55,50 +54,70 @@ const Login: React.FC<{ onLogin: (user: User) => void; users: User[] }> = ({ onL
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 font-sans">
-      <div className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl flex flex-col items-center">
+    <div className="h-[100dvh] w-full bg-slate-950 flex flex-col items-center justify-center p-4 font-sans overflow-hidden">
+      {/* Fondo decorativo sutil */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-600 rounded-full blur-[120px]"></div>
+          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand-800 rounded-full blur-[120px]"></div>
+      </div>
+
+      <div className="bg-white rounded-[2.5rem] p-6 md:p-10 w-full max-w-[380px] shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col items-center relative z-10 animate-in fade-in zoom-in duration-500">
         <div className="mb-6 text-center">
-          <h1 className="text-3xl font-extrabold bg-gradient-to-r from-brand-500 to-brand-700 bg-clip-text text-transparent mb-2">GastroOS</h1>
-          <p className="text-slate-500 text-sm">Ingresa tu PIN de acceso</p>
+          <div className="bg-brand-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-brand-900/20">
+             <ChefHat size={32} className="text-white" />
+          </div>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tighter mb-1 uppercase">GastroOS</h1>
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Ingresa tu PIN</p>
         </div>
 
-        <div className="flex justify-center space-x-4 mb-8">
+        <div className="flex justify-center space-x-5 mb-8">
             {[0, 1, 2, 3].map(i => (
-                <div key={i} className={`w-4 h-4 rounded-full border-2 ${pin.length > i ? 'bg-brand-600 border-brand-600' : 'bg-white border-slate-300'}`}></div>
+                <div 
+                  key={i} 
+                  className={`w-4 h-4 rounded-full border-2 transition-all duration-200 ${
+                    pin.length > i 
+                    ? 'bg-brand-600 border-brand-600 scale-125 shadow-lg shadow-brand-200' 
+                    : 'bg-white border-slate-200'
+                  }`}
+                ></div>
             ))}
         </div>
         
-        {error && <div className="text-red-500 font-bold mb-4 animate-pulse text-sm">{error}</div>}
+        <div className="h-6 mb-2">
+          {error && <div className="text-red-500 font-black text-[10px] uppercase tracking-tighter animate-bounce">{error}</div>}
+        </div>
 
-        <div className="grid grid-cols-3 gap-4 w-full mb-6">
+        <div className="grid grid-cols-3 gap-3 w-full mb-8">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
                 <button 
                     key={num} 
                     onClick={() => handleDigit(num.toString())}
-                    className="h-16 w-full bg-slate-100 rounded-2xl text-2xl font-bold text-slate-700 hover:bg-slate-200 active:scale-95 transition-all shadow-sm"
+                    className="h-14 md:h-16 w-full bg-slate-50 rounded-2xl text-xl font-black text-slate-800 hover:bg-slate-100 active:scale-90 transition-all border border-slate-100"
                 >
                     {num}
                 </button>
             ))}
-            <button onClick={handleClear} className="h-16 w-full bg-red-50 rounded-2xl text-red-600 hover:bg-red-100 flex items-center justify-center">
-                <Eraser size={24} />
+            <button onClick={handleClear} className="h-14 md:h-16 w-full bg-slate-50 rounded-2xl text-red-500 hover:bg-red-50 flex items-center justify-center border border-slate-100 active:scale-90 transition-all">
+                <Eraser size={22} />
             </button>
-            <button onClick={() => handleDigit('0')} className="h-16 w-full bg-slate-100 rounded-2xl text-2xl font-bold text-slate-700 hover:bg-slate-200">
+            <button onClick={() => handleDigit('0')} className="h-14 md:h-16 w-full bg-slate-50 rounded-2xl text-xl font-black text-slate-800 hover:bg-slate-100 border border-slate-100 active:scale-90 transition-all">
                 0
             </button>
-            <button onClick={handleDelete} className="h-16 w-full bg-slate-100 rounded-2xl text-slate-600 hover:bg-slate-200 flex items-center justify-center">
-                <Delete size={24} />
+            <button onClick={handleDelete} className="h-14 md:h-16 w-full bg-slate-50 rounded-2xl text-slate-400 hover:bg-slate-100 flex items-center justify-center border border-slate-100 active:scale-90 transition-all">
+                <Delete size={22} />
             </button>
         </div>
 
         <button 
             onClick={handleSubmit} 
             disabled={pin.length !== 4}
-            className="w-full bg-brand-600 disabled:bg-slate-300 disabled:cursor-not-allowed hover:bg-brand-700 text-white font-bold py-4 rounded-2xl transition-colors shadow-lg flex justify-center items-center gap-2"
+            className="w-full bg-brand-600 disabled:bg-slate-100 disabled:text-slate-300 hover:bg-brand-700 text-white font-black py-4 rounded-[1.25rem] transition-all shadow-xl shadow-brand-600/20 flex justify-center items-center gap-3 uppercase text-xs tracking-widest active:scale-95"
         >
-            <UserIcon size={20} /> INICIAR SESIÓN
+            <UserIcon size={18} /> Acceder al Sistema
         </button>
       </div>
+
+      <p className="mt-8 text-[10px] font-black text-slate-600 uppercase tracking-[0.3em]">GastroOS Cloud v1.0</p>
     </div>
   );
 };
@@ -252,7 +271,6 @@ const App: React.FC = () => {
   // Category Handlers
   const handleAddCategory = (category: Category) => setCategories(prev => [...prev, category]);
   const handleUpdateCategory = (category: Category) => setCategories(prev => prev.map(c => c.id === category.id ? category : c));
-  // Fix undefined variable 'r' by changing it to 'c'
   const handleDeleteCategory = (id: string) => setCategories(prev => prev.map(c => c.id === id ? { ...c, isActive: false } : c));
 
   const deductInventory = (items: CartItem[]) => {
@@ -299,9 +317,6 @@ const App: React.FC = () => {
     if (items.length > 0) {
         const subtotal = total / (1 + taxRate);
         const tax = total - subtotal;
-        
-        // MODIFICACIÓN CLAVE: Si es Delivery o Llevar, el estado debe ser PREPARING para que Cocina lo vea.
-        // Solo las mesas cerradas se marcan como COMPLETED directamente si ya fueron enviadas antes.
         const targetStatus = (type === OrderType.DINE_IN) ? OrderStatus.COMPLETED : OrderStatus.PREPARING;
         
         const newOrder: Order = { 
@@ -321,7 +336,6 @@ const App: React.FC = () => {
         deductInventory(items);
         setOrders(prev => [newOrder, ...prev]);
     } else if (selectedTable) {
-        // Cierre de cuenta acumulada de mesa
         setOrders(prev => prev.map(o => (o.tableId === selectedTable.id && o.status !== OrderStatus.COMPLETED && o.status !== OrderStatus.CANCELLED) ? { ...o, status: OrderStatus.COMPLETED, paymentMethod: method } : o));
         setTables(prev => prev.map(t => t.id === selectedTable.id ? { ...t, status: TableStatus.AVAILABLE, currentOrderId: undefined } : t));
         setSelectedTable(undefined);
